@@ -148,13 +148,12 @@ class GeoHex
     private static function _getCachedZone($code) {
         if (!empty(self::$_zoneCache[$code])) {
             $zone = self::$_zoneCache[$code];
-            echo 'Hit!!\n';
 
             //優先順位を後ろに持ってくるため
             unset(self::$_zoneCache[$code]);
             self::$_zoneCache[$code] = $zone;
 
-            return $ret;
+            return $zone;
         }
         return null;
     }
@@ -165,10 +164,8 @@ class GeoHex
             unset(self::$_zoneCache[$code]);
         }
         self::$_zoneCache[$code] = $zone;
-        echo "Push!!" . count(self::$_zoneCache) . "\n";
 
         while (count(self::$_zoneCache) > self::$_cacheLimit) {
-            echo "Shift!!\n";
             array_shift(self::$_zoneCache);
         }
     }
@@ -285,7 +282,7 @@ class GeoHex
             'longitude' => $z_loc_x
         );
 
-        $ret = self::_setCachedZone($h_code, $zone);
+        $ret = self::_setCachedZone($zone);
 
         return $zone;
     }
@@ -393,7 +390,7 @@ class GeoHex
             'longitude' => $h_loc['lon']
         );
 
-        $ret = self::_setCachedZone($code, $zone);
+        $ret = self::_setCachedZone($zone);
 
         return $zone;
     }
