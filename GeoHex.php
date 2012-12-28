@@ -415,26 +415,25 @@ class GeoHex
         $h_x = $_x;
         $h_y = $_y;
 
-    var h_lat = (h_k * h_x * unit_x + h_y * unit_y) / 2;
-    var h_lon = (h_lat - h_y * unit_y) / h_k;
+        $h_lat = (self::H_K * $h_x * $unit_x + $h_y * $unit_y) / 2;
+        $h_lon = ($h_lat - $h_y * $unit_y) / self::H_K;
 
-    var z_loc = xy2loc(h_lon, h_lat);
-    var z_loc_x = z_loc.lon;
-    var z_loc_y = z_loc.lat;
-    if(h_base - h_lon < h_size){
-    //  z_loc_x = 180;
-        var h_xy = h_x;
-        h_x = h_y;
-        h_y = h_xy;
-    }
+        $z_loc = self::_xy2loc($h_lon, $h_lat);
+        $z_loc_x = $z_loc['lon'];
+        $z_loc_y = $z_loc['lat'];
+        if(self::H_BASE - $h_lon < $h_size) {
+            $h_xy = $h_x;
+            $h_x  = $h_y;
+            $h_y  = $h_xy;
+        }
 
-    var h_code ="";
-    var code3_x =[];
-    var code3_y =[];
-    var code3 ="";
-    var code9="";
-    var mod_x = h_x;
-    var mod_y = h_y;
+        $h_code ="";
+        $code3_x =[];
+        $code3_y =[];
+        $code3 ="";
+        $code9="";
+        $mod_x = h_x;
+        $mod_y = h_y;
 
 
     for(i = 0;i <= level ; i++){
