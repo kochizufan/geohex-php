@@ -285,6 +285,7 @@ class GeoHex
 
         return self::_setCachedZone($zone);
     }
+
     public static function getZoneByCode($code) {
         $ret = self::_getCachedZone($code);
         if ($ret != null) {
@@ -387,6 +388,88 @@ class GeoHex
             'level' => strlen($code) - 2,
             'latitude' => $h_loc['lat'],
             'longitude' => $h_loc['lon']
+        );
+
+        return self::_setCachedZone($zone);
+    }
+
+    public static function getZoneByXY($_x, $_y, $level) {
+        $level_   = $level + 2;
+        $h_size   = self::_calcHexSize($level_);
+
+        $unit_x = 6 * $h_size;
+        $unit_y = 6 * $h_size * self::H_K;
+    
+        $h_x = $_x;
+        $h_y = $_y;
+
+        $h_lat = (self::H_K * $h_x * $unit_x + $h_y * $unit_y) / 2;
+        $h_lon = ($h_lat - $h_y * $unit_y) / self::H_K;
+
+        $z_loc = self::_xy2loc($h_lon, $h_lat);
+        $z_loc_x = $z_loc['lon'];
+        $z_loc_y = $z_loc['lat'];
+        if(self::H_BASE - $h_lon < $h_size) {
+            $h_xy = $h_x;
+            $h_x  = $h_y;
+            $h_y  = $h_xy;
+        }
+
+        $h_code ="";
+        $code3_x =array();
+        $code3_y =array();
+        $code3 ="";
+        $code9="";
+        $mod_x = $h_x;
+        $mod_y = $h_y;
+
+        for ($i = 0;$i <= $level_ ; $i++) {
+            $h_pow = pow(3,$level_-$i);
+            if ( $mod_x >= ceil($h_pow/2) ) {
+                $code3_x[$i] = 2;
+                $mod_x -= $h_pow;
+            } else if ( $mod_x <= -ceil($h_pow/2) ) { 
+                $code3_x[$i] = 0;
+                $mod_x += $h_pow;
+            } else {
+                $code3_x[$i] = 1;
+            }
+            if ( $mod_y >= ceil($h_pow/2) ) {
+                $code3_y[$i] = 2;
+                $mod_y -= $h_pow;
+            } else if ( $mod_y <= -ceil($h_pow/2) ) {
+                $code3_y[$i] = 0;
+                $mod_y += $h_pow;
+            } else {
+                $code3_y[$i] = 1;
+            }
+        }
+
+        for ($i=0;$i<count($code3_x);$i++) {
+            $code3 += ("" + $code3_x[$i] + $code3_y[$i]);
+            $code9 += base_convert ($code3, 3, 10);
+            $h_code += $code9;
+            $code9 = "";
+            $code3 = "";
+        }
+        $h_2    = substr($h_code,3);
+        $h_1    = substr($h_code,0,3);
+        $h_a1   = floor($h_1/30);
+        $h_a2   = $h_1%30;
+        $h_code = (substr(self::H_KEY,$h_a1,1) . substr(self::H_KEY,$h_a2,1)) . $h_2;
+
+        $ret = self::_getCachedZone($h_code);
+        if ($ret != null) {
+            return $ret;
+        }
+
+        $zone = array(
+            'x' => $h_x,
+            'y' => $h_y,
+            'code' => $h_code,
+            'level' => $level,
+            'latitude' => $z_loc_y,
+            'longitude' => $z_loc_x
         );
 
         return self::_setCachedZone($zone);
