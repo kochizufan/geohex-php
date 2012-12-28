@@ -332,10 +332,14 @@ class GeoHex
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;
+            $h_x -= pow(3,$level);    // v3.01
+            $h_y += pow(3,$level);    // v3.01
         }
         
         else if ($h_loc['lon'] < -180) {
             $h_loc['lon'] += 360;
+            $h_x += pow(3,$level);    // v3.01
+            $h_y -= pow(3,$level);    // v3.01
         }
 
         return array(
