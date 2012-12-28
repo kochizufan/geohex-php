@@ -14,16 +14,18 @@
  */
 class GeoHex
 {
-    const VERSION = '3.01';
+    const VERSION = '3.1';
 
     const H_KEY  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE = 20037508.34;
     const H_DEG  = 0.5235987755983;  # pi() / 30 / 180
     const H_K    = 0.57735026918963; # tan(H_DEG)
 
+    // For caching zone
     private static $_zoneCache  = array();
     private static $_cacheLimit = 100;
 
+    // property
     public $x = null;
     public $y = null;
     public $code = null;
@@ -49,13 +51,13 @@ class GeoHex
         switch (func_num_args()) {
         case 3:
             $args = func_get_args();
-            $this->latitude = $args[0];
+            $this->latitude  = $args[0];
             $this->longitude = $args[1];
-            $this->level = $args[2];
+            $this->level     = $args[2];
             break;
         case 2:
             $args = func_get_args();
-            $this->latitude = $args[0];
+            $this->latitude  = $args[0];
             $this->longitude = $args[1];
             break;
         case 1:
@@ -111,8 +113,8 @@ class GeoHex
         $zone = self::getZoneByLocation(
             $this->latitude, $this->longitude, $this->level);
 
-        $this->x = $zone['x'];
-        $this->y = $zone['y'];
+        $this->x    = $zone['x'];
+        $this->y    = $zone['y'];
         $this->code = $zone['code'];
 
         return $this->setCoords();
@@ -172,6 +174,7 @@ class GeoHex
             echo "Shift!!\n";
             array_shift(self::$_zoneCache);
         }
+        return $zone;
     }
 
     /**
@@ -277,6 +280,11 @@ class GeoHex
         $h_a2   = $h_1 % 30;
         $h_code = substr(self::H_KEY, $h_a1, 1) . substr(self::H_KEY, $h_a2, 1) . $h_2;
 
+        $ret = self::_getCachedZone($h_code);
+        if ($ret != null) {
+            return $ret;
+        }
+
         $zone = array(
             'x' => $h_x,
             'y' => $h_y,
@@ -286,9 +294,7 @@ class GeoHex
             'longitude' => $z_loc_x
         );
 
-        $ret = self::_setCachedZone($h_code, $zone);
-
-        return $zone;
+        return self::_setCachedZone($h_code, $zone);
     }
 
     //Port from JavaScript API 3.01
@@ -397,9 +403,171 @@ class GeoHex
         );
 
         $ret = self::_setCachedZone($code, $zone);
-
-        return $zone;
     }
+
+    public static function getZoneByXY($_x, $_y, $level) {
+        $level_   = $level + 2;
+        $h_size   = self::_calcHexSize($level_);
+
+        $unit_x = 6 * $h_size;
+        $unit_y = 6 * $h_size * self::H_K;
+    
+        $h_x = $_x;
+        $h_y = $_y;
+
+    var h_lat = (h_k * h_x * unit_x + h_y * unit_y) / 2;
+    var h_lon = (h_lat - h_y * unit_y) / h_k;
+
+    var z_loc = xy2loc(h_lon, h_lat);
+    var z_loc_x = z_loc.lon;
+    var z_loc_y = z_loc.lat;
+    if(h_base - h_lon < h_size){
+    //  z_loc_x = 180;
+        var h_xy = h_x;
+        h_x = h_y;
+        h_y = h_xy;
+    }
+
+    var h_code ="";
+    var code3_x =[];
+    var code3_y =[];
+    var code3 ="";
+    var code9="";
+    var mod_x = h_x;
+    var mod_y = h_y;
+
+
+    for(i = 0;i <= level ; i++){
+      var h_pow = Math.pow(3,level-i);
+      if(mod_x >= Math.ceil(h_pow/2)){
+        code3_x[i] =2;
+        mod_x -= h_pow;
+      }else if(mod_x <= -Math.ceil(h_pow/2)){
+        code3_x[i] =0;
+        mod_x += h_pow;
+      }else{
+        code3_x[i] =1;
+      }
+      if(mod_y >= Math.ceil(h_pow/2)){
+        code3_y[i] =2;
+        mod_y -= h_pow;
+      }else if(mod_y <= -Math.ceil(h_pow/2)){
+        code3_y[i] =0;
+        mod_y += h_pow;
+      }else{
+        code3_y[i] =1;
+      }
+    }
+
+    for(i=0;i<code3_x.length;i++){
+      code3 += ("" + code3_x[i] + code3_y[i]);
+      code9 += parseInt(code3,3);
+      h_code += code9;
+      code9="";
+      code3="";
+    }
+    var h_2 = h_code.substring(3);
+    var h_1 = h_code.substring(0,3);
+    var h_a1 = Math.floor(h_1/30);
+    var h_a2 = h_1%30;
+    h_code = (h_key.charAt(h_a1)+h_key.charAt(h_a2)) + h_2;
+
+    if (!!_zoneCache[h_code])   return _zoneCache[h_code];
+    return (_zoneCache[h_code] = new Zone(z_loc_y, z_loc_x, h_x, h_y, h_code));
+}
+
+    //Port from JavaScript API 3.1
+    //Get Hex list from Rect, (array:{x:n,y:m}） : RECT（矩形）内のHEXリスト取得（配列{x:n,y:m}）
+    public static function getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer) {
+        $list = array();
+        $zone_tl = self::getZoneByLocation($_max_lat, $_min_lon, $_level);
+        $zone_bl = self::getZoneByLocation($_min_lat, $_min_lon, $_level);
+        $zone_br = self::getZoneByLocation($_min_lat, $_max_lon, $_level);
+        
+        $start_x = $zone_bl['x'];
+        $start_y = $zone_bl['y'];
+    
+        $h_deg   = tan(pi() * (60 / 180));
+        $h_size  = strlen($zone_br['code']);
+    
+        $bl_xy = self::_loc2xy($zone_bl['lon'], $zone_bl['lat']);
+        $bl_cl = self::_xy2loc($bl_xy['x'] - 1 * $h_size, $bl_xy['y']);
+        $bl_cl = $bl_cl['lon'];
+    
+        $br_xy = self::_loc2xy($zone_br['lon'], $zone_br['lat']);
+        $br_cr = self::_xy2loc($br_xy['x'] + 1 * $h_size, $br_xy['y']);
+        $br_cr = $br_cr['lon'];
+    
+        // Checking Edge : 矩形端にHEXの抜けを無くすためのエッジ処理
+        $edge = array(
+            'l' => 0,
+            'r' => 0,
+            't' => 0,
+            'b' => 0
+        );
+        if ($bl_cl > $_min_lon) $edge['l']++;
+        if ($br_cr < $_max_lon) $edge['r']++;
+        if ($zone_bl['lat'] > $_min_lat) $edge['b']++;
+        if ($zone_tl['lat'] < $_max_lat) $edge['t']++;
+    
+        if ($edge['l']){
+            $start_x -= $edge['b'];
+            $start_y -= $edge['b'] - 1; 
+        }
+    
+        $steps_x = self::_getXSteps($zone_bl, $zone_br) + $edge['l'] + $edge['r'];
+        $steps_y = self::_getYSteps($zone_bl, $zone_tl) + $edge['b'] * $edge['t'];
+    
+        if ($steps_x < 0) {
+            $start_x = ($edge['b']) ? $start_x - floor($steps_x / 2) : $start_x - ceil( $steps_x / 2);
+            $start_y = ($edge['b']) ? $start_y + ceil( $steps_x / 2) : $start_y + floor($steps_x / 2);
+        }
+    
+        // Calcurating for buffer : バッファ指定時: 画面の上下左右に半画面分ずつ余分取得
+        if($_buffer){
+            $start_x =($edge['b']) ? $start_x - floor( $steps_x / 2) : $start_x - ceil( $steps_x / 2);
+            $steps_x *= 2;
+            $steps_y *= 2;
+        }
+    
+        for ($j=0;$j<$steps_y-$edge['t'];$j++) {
+            for($i=0;$i<$steps_x;$i++){
+                $x = $start_x + $j + ceil( $i / 2);
+                $y = $start_y + $j + ceil( $i / 2) - $i;
+                $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
+                                   : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
+                array_push($list, $push);
+            }
+        }
+        if ($edge['t']) {
+            $j = $steps_y - 1;
+            for($i=0;$i<$steps_x;$i++) {
+                $x = $start_x + $j + ceil( $i / 2);
+                $y = $start_y + $j + ceil( $i / 2) - $i;
+                if ($steps_y - $edge['t'] == 0  || $edge['b'] == $i % 2 ) {
+                    $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
+                                       : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
+                    array_push($list, $push);
+                }
+            }
+        }
+        return $list;
+    }
+
+    // Step numbers along longitude : longitude方向のステップ数取得
+    public static function _getXSteps($_min, $_max){
+        $code = $_min['code'];
+        $max_steps =  pow(3, strlen($code))*2;
+        $steps = abs($_min['x'] - $_max['x']) + abs($_min['y'] - $_max['y']);
+        $steps = ($steps > ($max_steps-$steps))? $steps - $max_steps: $steps;
+        return $steps + 1;
+    }
+
+    // Step numbers along latitude : latitude方向のステップ数取得
+    public static function _getYSteps($_min, $_max){
+        return abs($_min['y'] - $_max['y']) + 1;
+    }
+
     public static function getHexCoordsByZone($zone)
     {
         $h_lat  = $zone['latitude'];
