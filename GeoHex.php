@@ -9,16 +9,20 @@
  * @copyright Copyright (c) 2011 Tonthidot Corporation. (http://www.tonchidot.com)
  * @license   http://creativecommons.org/licenses/by-sa/2.1/jp/
  * @author    KITA, Junpei
+ * @author    OHTSUKA, Ko-hei
  * @version   $Id
  */
 class GeoHex
 {
-    const VERSION = '3.00';
+    const VERSION = '3.01';
 
     const H_KEY  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE = 20037508.34;
     const H_DEG  = 0.5235987755983;  # pi() / 30 / 180
     const H_K    = 0.57735026918963; # tan(H_DEG)
+
+    private static $_zoneCache  = array();
+    private static $_cacheLimit = 100;
 
     public $x = null;
     public $y = null;
@@ -140,6 +144,36 @@ class GeoHex
         return $this->setLocation($this->latitude, $longitude);
     }
 
+
+    //Cache API
+    private static function _getCachedZone($code) {
+        if (!empty(self::$_zoneCache[$code])) {
+            $zone = self::$_zoneCache[$code];
+            echo 'Hit!!\n';
+
+            //優先順位を後ろに持ってくるため
+            unset(self::$_zoneCache[$code]);
+            self::$_zoneCache[$code] = $zone;
+
+            return $ret;
+        }
+        return null;
+    }
+
+    private static function _setCachedZone($zone) {
+        $code = $zone['code'];
+        if (!empty(self::$_zoneCache[$code])) {
+            unset(self::$_zoneCache[$code]);
+        }
+        self::$_zoneCache[$code] = $zone;
+        echo "Push!!" . count(self::$_zoneCache) . "\n";
+
+        while (count(self::$_zoneCache) > self::$_cacheLimit) {
+            echo "Shift!!\n";
+            array_shift(self::$_zoneCache);
+        }
+    }
+
     /**
      * public static
      */
@@ -243,7 +277,7 @@ class GeoHex
         $h_a2   = $h_1 % 30;
         $h_code = substr(self::H_KEY, $h_a1, 1) . substr(self::H_KEY, $h_a2, 1) . $h_2;
 
-        return array(
+        $zone = array(
             'x' => $h_x,
             'y' => $h_y,
             'code' => $h_code,
@@ -251,8 +285,19 @@ class GeoHex
             'latitude' => $z_loc_y,
             'longitude' => $z_loc_x
         );
+
+        $ret = self::_setCachedZone($h_code, $zone);
+
+        return $zone;
     }
+
+    //Port from JavaScript API 3.01
     public static function getZoneByCode($code) {
+        $ret = self::_getCachedZone($code);
+        if ($ret != null) {
+            return $ret;
+        }
+
         $level  = strlen($code);
         $h_size = self::_calcHexSize($level);
         $unit_x = 6 * $h_size;
@@ -332,13 +377,17 @@ class GeoHex
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;
+            $h_x -= pow(3, $level);  // v3.01
+            $h_y += pow(3, $level);  // v3.01
         }
         
         else if ($h_loc['lon'] < -180) {
             $h_loc['lon'] += 360;
+            $h_x += pow(3, $level);  // v3.01
+            $h_y -= pow(3, $level);  // v3.01   
         }
 
-        return array(
+        $zone = array(
             'x' => $h_x,
             'y' => $h_y,
             'code' => $code,
@@ -346,6 +395,10 @@ class GeoHex
             'latitude' => $h_loc['lat'],
             'longitude' => $h_loc['lon']
         );
+
+        $ret = self::_setCachedZone($code, $zone);
+
+        return $zone;
     }
     public static function getHexCoordsByZone($zone)
     {
