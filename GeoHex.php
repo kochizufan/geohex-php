@@ -14,7 +14,7 @@
  */
 class GeoHex
 {
-    const VERSION = '3.00';
+    const VERSION = '3.1';
 
     const H_KEY  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE = 20037508.34;
@@ -168,6 +168,7 @@ class GeoHex
         while (count(self::$_zoneCache) > self::$_cacheLimit) {
             array_shift(self::$_zoneCache);
         }
+        return $zone;
     }
 
     /**
@@ -282,9 +283,7 @@ class GeoHex
             'longitude' => $z_loc_x
         );
 
-        $ret = self::_setCachedZone($zone);
-
-        return $zone;
+        return self::_setCachedZone($zone);
     }
     public static function getZoneByCode($code) {
         $ret = self::_getCachedZone($code);
@@ -390,10 +389,101 @@ class GeoHex
             'longitude' => $h_loc['lon']
         );
 
-        $ret = self::_setCachedZone($zone);
-
-        return $zone;
+        return self::_setCachedZone($zone);
     }
+
+    //Port from JavaScript API 3.1
+    //Get Hex list from Rect, (array:{x:n,y:m}） : RECT（矩形）内のHEXリスト取得（配列{x:n,y:m}）
+    public static function getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer) {
+        $list = array();
+        $zone_tl = self::getZoneByLocation($_max_lat, $_min_lon, $_level);
+        $zone_bl = self::getZoneByLocation($_min_lat, $_min_lon, $_level);
+        $zone_br = self::getZoneByLocation($_min_lat, $_max_lon, $_level);
+        
+        $start_x = $zone_bl['x'];
+        $start_y = $zone_bl['y'];
+    
+        $h_deg   = tan(pi() * (60 / 180));
+        $h_size  = strlen($zone_br['code']);
+    
+        $bl_xy = self::_loc2xy($zone_bl['lon'], $zone_bl['lat']);
+        $bl_cl = self::_xy2loc($bl_xy['x'] - 1 * $h_size, $bl_xy['y']);
+        $bl_cl = $bl_cl['lon'];
+    
+        $br_xy = self::_loc2xy($zone_br['lon'], $zone_br['lat']);
+        $br_cr = self::_xy2loc($br_xy['x'] + 1 * $h_size, $br_xy['y']);
+        $br_cr = $br_cr['lon'];
+    
+        // Checking Edge : 矩形端にHEXの抜けを無くすためのエッジ処理
+        $edge = array(
+            'l' => 0,
+            'r' => 0,
+            't' => 0,
+            'b' => 0
+        );
+        if ($bl_cl > $_min_lon) $edge['l']++;
+        if ($br_cr < $_max_lon) $edge['r']++;
+        if ($zone_bl['lat'] > $_min_lat) $edge['b']++;
+        if ($zone_tl['lat'] < $_max_lat) $edge['t']++;
+    
+        if ($edge['l']){
+            $start_x -= $edge['b'];
+            $start_y -= $edge['b'] - 1; 
+        }
+    
+        $steps_x = self::_getXSteps($zone_bl, $zone_br) + $edge['l'] + $edge['r'];
+        $steps_y = self::_getYSteps($zone_bl, $zone_tl) + $edge['b'] * $edge['t'];
+    
+        if ($steps_x < 0) {
+            $start_x = ($edge['b']) ? $start_x - floor($steps_x / 2) : $start_x - ceil( $steps_x / 2);
+            $start_y = ($edge['b']) ? $start_y + ceil( $steps_x / 2) : $start_y + floor($steps_x / 2);
+        }
+    
+        // Calcurating for buffer : バッファ指定時: 画面の上下左右に半画面分ずつ余分取得
+        if($_buffer){
+            $start_x =($edge['b']) ? $start_x - floor( $steps_x / 2) : $start_x - ceil( $steps_x / 2);
+            $steps_x *= 2;
+            $steps_y *= 2;
+        }
+    
+        for ($j=0;$j<$steps_y-$edge['t'];$j++) {
+            for($i=0;$i<$steps_x;$i++){
+                $x = $start_x + $j + ceil( $i / 2);
+                $y = $start_y + $j + ceil( $i / 2) - $i;
+                $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
+                                   : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
+                array_push($list, $push);
+            }
+        }
+        if ($edge['t']) {
+            $j = $steps_y - 1;
+            for($i=0;$i<$steps_x;$i++) {
+                $x = $start_x + $j + ceil( $i / 2);
+                $y = $start_y + $j + ceil( $i / 2) - $i;
+                if ($steps_y - $edge['t'] == 0  || $edge['b'] == $i % 2 ) {
+                    $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
+                                       : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
+                    array_push($list, $push);
+                }
+            }
+        }
+        return $list;
+    }
+
+    // Step numbers along longitude : longitude方向のステップ数取得
+    public static function _getXSteps($_min, $_max){
+        $code = $_min['code'];
+        $max_steps =  pow(3, strlen($code))*2;
+        $steps = abs($_min['x'] - $_max['x']) + abs($_min['y'] - $_max['y']);
+        $steps = ($steps > ($max_steps-$steps))? $steps - $max_steps: $steps;
+        return $steps + 1;
+    }
+
+    // Step numbers along latitude : latitude方向のステップ数取得
+    public static function _getYSteps($_min, $_max){
+        return abs($_min['y'] - $_max['y']) + 1;
+    }
+
     public static function getHexCoordsByZone($zone)
     {
         $h_lat  = $zone['latitude'];
