@@ -304,11 +304,11 @@ class GeoHex
             preg_match('/[^125]/', substr($h_dec9, 1, 1)) &&
             preg_match('/[^125]/', substr($h_dec9, 2, 1))
         ) {
-            if (substr($h_dec9, 0, 1) === 5) {
+            if (substr($h_dec9, 0, 1) === '5') {
                 $h_dec9 = '7' . substr($h_dec9, 1, strlen($h_dec9));
             }
             
-            else if (substr($h_dec9, 0, 1) === 1) {
+            else if (substr($h_dec9, 0, 1) === '1') {
                 $h_dec9 = '3' . substr($h_dec9, 1, strlen($h_dec9));
             }
         }
@@ -373,7 +373,7 @@ class GeoHex
         $h_lon_x = ($h_lat_y - $h_y * $unit_y) / self::H_K;
         $h_loc = self::_xy2loc($h_lon_x, $h_lat_y);
 
-        if ($inner_xy['rev']) $h_loc['lon'] = 180;
+        if ($inner_xy['rev'] == 1) $h_loc['lon'] = 180;
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;

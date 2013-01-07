@@ -43,7 +43,7 @@ foreach ($testMode as $testMeta) {
         if ($result['err']) {
             $fail_count++;
             print "FAILED TESTCASE: \n";
-            print "  " . $result['message'];
+            print "  " . $result['message'] . "\n";
         } else {
             $succ_count++;
         }
