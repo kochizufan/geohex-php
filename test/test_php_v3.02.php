@@ -9,7 +9,7 @@ $succ_count = 0;
 $fail_count = 0;
 
 $testMode = array(
-	array(
+    array(
        	'casename' => 'code2HEX',
         'mode'     => 'code -> HEX',
         'input'    => 'code',
@@ -18,36 +18,36 @@ $testMode = array(
             $lat  = $test_case[1];
             $lon  = $test_case[2];
             $code = $test_case[0];
-			$g = new Geohex();
-			$g->setCode($code);
+            $g = new Geohex();
+            $g->setCode($code);
 
             return array(
                 'err'     => (abs($g->latitude - $lat) < 0.0000000001 && abs($g->longitude - $lon) < 0.0000000001) ? 0 : 1,
                 'message' => $code . " ____ " . $g->latitude . ", " . $g->longitude . " (" . $lat . ", " . $lon . ")"
             );
         }
-	),
+    ),
 //	array()
 );
 
 foreach ($testMode as $testMeta) {
-    $testJson  = './hex_v3.02_test_' + $testMeta['casename'] + '.json';
-	$testLogic = $testMeta['logic'];
+    $testJson  = './hex_v3.02_test_' . $testMeta['casename'] . '.json';
+    $testLogic = $testMeta['logic'];
 
-	$handle    = fopen($testJson, 'r'); 
-	$testCases = json_decode(fread($handle, filesize($testJson)));
-	fclose($handle);
+    $handle    = fopen($testJson, 'r'); 
+    $testCases = json_decode(fread($handle, filesize($testJson)));
+    fclose($handle);
 
-	foreach ($testCases as $testCase) {
-		$result = $testLogic($testCase);
-		if ($result['err']) {
-			$fail_count++;
-			print "FAILED TESTCASE: \n";
-			print "  " . $result['message'];
-		} else {
-			$succ_count++;
-		}
-	}
+    foreach ($testCases as $testCase) {
+        $result = $testLogic($testCase);
+        if ($result['err']) {
+            $fail_count++;
+            print "FAILED TESTCASE: \n";
+            print "  " . $result['message'];
+        } else {
+            $succ_count++;
+        }
+    }
 }
 
 

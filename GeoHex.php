@@ -373,7 +373,7 @@ class GeoHex
         $h_lon_x = ($h_lat_y - $h_y * $unit_y) / self::H_K;
         $h_loc = self::_xy2loc($h_lon_x, $h_lat_y);
 
-        if (inner_xy['rev']) $h_loc['lon'] = 180;
+        if ($inner_xy['rev']) $h_loc['lon'] = 180;
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;
