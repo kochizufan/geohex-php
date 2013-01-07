@@ -1,0 +1,170 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"> 
+<head> 
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" /> 
+<meta name="viewport" content="width=device-width; initial-scale=1.0; minimum-scale=1.0; maximum-scale=1.0; user-scalable=0;" /> 
+<meta http-equiv="content-script-type" content="text/javascript" /> 
+<meta http-equiv="content-style-type" content="text/css" /> 
+<meta http-equiv="cache-control" content="max-age=0" /> 
+<meta http-equiv="cache-control" content="no-cache" /> 
+<title>V3 TEST CASE</title> 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script> 
+<script src="../hex_v3.02_core.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
+<script type="text/javascript">
+    var mode=0;
+    var option=location.search;
+    option=(option.substring(1)).split("=");
+    if(option[1]) mode = parseInt(option[1]); // 0:code -> HEX, 1:coordinate -> HEX, 2:code -> XY, 3:XY -> HEX
+
+    var testMode = [
+        {
+            'casename' : 'code2HEX',
+            'mode'     : 'code -> HEX',
+            'input'    : 'code',
+            'output'   : 'zone.lat, zone.lon (expectaion)',
+            'logic'    : function(test_case) {
+                var lat  = parseFloat(test_case[1]);
+                var lon  = parseFloat(test_case[2]);
+                var code = test_case[0];
+                var zone = GEOHEX.getZoneByCode(code);
+
+                return {
+                    'err'     : (Math.abs(zone.lat - lat) < 0.0000000001 && Math.abs(zone.lon - lon) < 0.0000000001) ? 0 : 1,
+                    'message' : code + " ____ " + (zone.lat) + ", " + (zone.lon) + " (" + lat + ", " + lon + ")"
+                };
+            }
+        },
+        {
+            'casename' : 'coord2HEX',
+            'mode'     : 'coordinate -> HEX',
+            'input'    : 'level, lat, lon',
+            'output'   : 'zone.code (expectaion)',
+            'logic'    : function(test_case) {
+                var level = parseInt(test_case[0]);
+                var lat   = parseFloat(test_case[1]);
+                var lon   = parseFloat(test_case[2]);
+                var code  = test_case[3];
+                var zone  = GEOHEX.getZoneByLocation(lat, lon, level);
+
+                return {
+                    'err'     : zone.code == code ? 0 : 1,
+                    'message' : level + ", " + lat + ", " + lon + " ____ " + zone.code + " (" + code + ")"
+                };
+            }
+        },
+        {
+            'casename' : 'code2XY',
+            'mode'     : 'code -> XY',
+            'input'    : 'code',
+            'output'   : 'zone.x, zone.y (expectaion)',
+            'logic'    : function(test_case) {
+                var code  = test_case[0];
+                var X     = parseInt(test_case[1]);
+                var Y     = parseInt(test_case[2]);
+                var zone  = GEOHEX.getZoneByCode(code);
+                var h_max = Math.pow(3,code.length);
+
+                return {
+                    'err'     : (zone.x == X)&&(zone.y == Y) ? 0 : 1,
+                    'message' : code + " ____ " + zone.x + ", " + zone.y + " (" + X + ", " + Y + ")"
+                };
+            }
+        },
+        {
+            'casename' : 'XY2HEX',
+            'mode'     : 'XY -> HEX',
+            'input'    : 'level, X, Y',
+            'output'   : 'zone.code (expectaion)',
+            'logic'    : function(test_case) {
+                var level = parseInt(test_case[0]);
+                var X     = parseInt(test_case[1]);
+                var Y     = parseInt(test_case[2]);
+                var code  = test_case[3];
+                var zone  = GEOHEX.getZoneByXY(X, Y, level);
+
+                return {
+                    'err'     : zone.code == code ? 0 : 1,
+                    'message' : level + ", " + X + ", " + Y + " ____ " + zone.code + " (" + code + ")"
+                };
+            }
+        }
+    ];
+
+    function runTest(index) {
+        $('#log').empty();
+        var testMeta  = testMode[index];
+        $('#mode').html(testMeta['mode']);
+        var testJson  = 'hex_v3.02_test_' + testMeta['casename'] + '.json';
+        $('#file').html("<a href='./" + testJson + "'>" + testJson + "</a>");
+        $('#input').html(testMeta['input']);
+        $('#output').html(testMeta['output']);
+
+        var testLogic = testMeta['logic'];
+        $.getJSON(
+            './' + testJson,
+            {},
+            function (testData) {
+                if (testData) {
+                    var err = 0;
+                    $('#count').text(testData.length);
+                    $.each(testData,function(i,line) {
+                        var result = testLogic(line);
+                        addLog((result.err ? "[<span class='NG'>NG</span>] " : "[<span class='OK'>OK</span>] " ) + result.message);
+                        err += result.err;
+                    });
+                    if(err) alert(err +"件のエラー");
+                } else {
+                    $('#count').text('0');
+                    addLog("NO TEST CASE");
+                }
+            }
+        );
+    }
+    
+    function initialize() {
+        $('#version').text(GEOHEX.version);
+        $.each(testMode,function(i,mode) {
+            $('#link').append(' <a href="?mode=' + i + '">' + i + ': ' + mode['mode'] + '</a>');
+        });
+        runTest(mode);
+    }
+    function addLog(_text){
+        $('#log').append("<br>"+_text);
+    }
+</script> 
+<style type="text/css"> 
+    html,body{
+    }
+    .NG{color: #FF0000}
+    .OK{color: #0000FF}
+@-webkit-keyframes mycolor {
+ 
+    0%  {
+                right:100%;
+        }
+    100%    {
+                right:0;
+        }
+ 
+    }
+#level_r{
+  float:right;
+  margin:5px;
+  font-size:11px;
+}
+ 
+</style> 
+ 
+</head> 
+<body onload="initialize()">
+<div style="width:100%;border-bottom:1px dotted #000000;color:#999999;margin-bottom:10px;">OPTION(URL?mode=) <span id="link"></span></div>
+<div>TEST_CASE: <span id="file"></span></div>
+<div>VERSION: <span id="version"></span></div>
+<div>MODE: <span id="mode"></span></div>
+<div>TOTAL_COUNT: <span id="count"></span></div>
+    ---------------------------------------------------------------------------------------<br />INPUT: <span id="input"></span> ____ OUTPUT: <span id="output"></span><br />---------------------------------------------------------------------------------------<div id ="log"></div>
+</body> 
+ 
+</html> 
