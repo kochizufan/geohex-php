@@ -27,7 +27,28 @@ $testMode = array(
             );
         }
     ),
-//	array()
+	array(
+        'casename' => 'coord2HEX',
+        'mode'     => 'coordinate -> HEX',
+        'input'    => 'level, lat, lon',
+        'output'   => 'zone.code (expectaion)',
+        'logic'    => function($test_case) {
+            $level = $test_case[0];
+            $lat   = $test_case[1];
+            $lon   = $test_case[2];
+            $code  = $test_case[3];
+            $g = new Geohex(array(
+                'latitude' => $lat,
+                'longitude' => $lon,
+                'level' => $level,
+            ));
+
+            return array(
+                'err'     => $g->code === $code ? 0 : 1,
+                'message' => $level . ", " . $lat . ", " . $lon . " ____ " . $g->code . " (" . $code . ")"
+            );
+        }
+    ),
 );
 
 foreach ($testMode as $testMeta) {
