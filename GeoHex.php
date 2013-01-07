@@ -14,7 +14,7 @@
  */
 class GeoHex
 {
-    const VERSION = '3.1';
+    const VERSION = '3.02';
 
     const H_KEY  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE = 20037508.34;
@@ -66,7 +66,7 @@ class GeoHex
             }
 
             else if (is_array($arg)) {
-                $keys = array('code', 'level', 'latitude', 'longitude');
+                $keys = array('code', 'level', 'latitude', 'longitude','x','y');
 
                 foreach ($keys as $key) {
                     if (isset($arg[$key])) {
@@ -79,10 +79,12 @@ class GeoHex
 
         if (isset($this->latitude) && isset($this->longitude))
         {
-            $this->setLocation(
-                $this->latitude, $this->longitude, $this->level);
+            $this->setLocation($this->latitude, $this->longitude, $this->level);
         }
-
+        else if (isset($this->x) && isset($this->y))
+        {
+            $this->setXY($this->x, $this->y, $this->level);
+        }
         else if (isset($this->code)) {
             $this->setCode($this->code);
         }
@@ -108,12 +110,37 @@ class GeoHex
             return $this;
         }
 
-        $zone = self::getZoneByLocation(
-            $this->latitude, $this->longitude, $this->level);
+        $zone = self::getZoneByLocation($this->latitude, $this->longitude, $this->level);
 
         $this->x = $zone['x'];
         $this->y = $zone['y'];
         $this->code = $zone['code'];
+
+        return $this->setCoords();
+    }
+    public function setXY($x, $y, $level = null)
+    {
+        $this->x = $x;
+        $this->y = $y;
+
+        if (isset($level)) {
+            $this->level = $level;
+        }
+
+        if (!isset($this->x) ||
+            !isset($this->y) ||
+            !isset($this->level)
+        ) {
+            return $this;
+        }
+
+        $zone = self::getZoneByXY($this->x, $this->y, $this->level);
+
+        //$this->x = $zone['x'];
+        //$this->y = $zone['y'];
+        $this->latitude  = $zone['latitude'];
+        $this->longitude = $zone['longitude'];
+        $this->code      = $zone['code'];
 
         return $this->setCoords();
     }
@@ -213,12 +240,10 @@ class GeoHex
         $z_loc_x = $z_loc['lon'];
         $z_loc_y = $z_loc['lat'];
 
-        if (self::H_BASE - $h_lon < $h_size) {
-            $z_loc_x = 180;
-            $h_xy    = $h_x;
-            $h_x     = $h_y;
-            $h_y     = $h_xy;
-        }
+        $inner_xy = self::_adjustXY($h_x,$h_y,$level_);
+        $h_x = $inner_xy['x'];
+        $h_y = $inner_xy['y'];
+        if ($inner_xy['rev']) $z_loc_x = 180;
 
         $h_code  = '';
         $code3_x = array();
@@ -409,28 +434,31 @@ class GeoHex
         $h_x = $_x;
         $h_y = $_y;
 
+        $inner_xy = self::_adjustXY( $h_x, $h_y, $level_ );
+        $h_x = $inner_xy['x'];
+        $h_y = $inner_xy['y'];
+
         $h_lat = (self::H_K * $h_x * $unit_x + $h_y * $unit_y) / 2;
         $h_lon = ($h_lat - $h_y * $unit_y) / self::H_K;
 
         $z_loc = self::_xy2loc($h_lon, $h_lat);
         $z_loc_x = $z_loc['lon'];
         $z_loc_y = $z_loc['lat'];
-        if(self::H_BASE - $h_lon < $h_size) {
-            $h_xy = $h_x;
-            $h_x  = $h_y;
-            $h_y  = $h_xy;
+
+        if ($inner_xy['rev']) {
+            $z_loc_x = 180;
         }
 
-        $h_code ="";
-        $code3_x =array();
-        $code3_y =array();
-        $code3 ="";
-        $code9="";
-        $mod_x = $h_x;
-        $mod_y = $h_y;
+        $h_code  = "";
+        $code3_x = array();
+        $code3_y = array();
+        $code3   = "";
+        $code9   = "";
+        $mod_x   = $h_x;
+        $mod_y   = $h_y;
 
-        for ($i = 0;$i <= $level_ ; $i++) {
-            $h_pow = pow(3,$level_-$i);
+        for ( $i = 0; $i <= $level_ ; $i++ ) {
+            $h_pow = pow( 3, $level_ - $i );
             if ( $mod_x >= ceil($h_pow/2) ) {
                 $code3_x[$i] = 2;
                 $mod_x -= $h_pow;
@@ -452,11 +480,11 @@ class GeoHex
         }
 
         for ($i=0;$i<count($code3_x);$i++) {
-            $code3 += ("" + $code3_x[$i] + $code3_y[$i]);
-            $code9 += base_convert ($code3, 3, 10);
-            $h_code += $code9;
-            $code9 = "";
-            $code3 = "";
+            $code3  .= $code3_x[$i] . $code3_y[$i];
+            $code9  .= base_convert ($code3, 3, 10);
+            $h_code .= $code9;
+            $code9  = "";
+            $code3  = "";
         }
         $h_2    = substr($h_code,3);
         $h_1    = substr($h_code,0,3);
