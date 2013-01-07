@@ -365,9 +365,15 @@ class GeoHex
             }
         }
 
+        $inner_xy = self::_adjustXY( $h_x, $h_y, $level );
+        $h_x = $inner_xy['x'];
+        $h_y = $inner_xy['y'];
+
         $h_lat_y = (self::H_K * $h_x * $unit_x + $h_y * $unit_y) / 2;
         $h_lon_x = ($h_lat_y - $h_y * $unit_y) / self::H_K;
         $h_loc = self::_xy2loc($h_lon_x, $h_lat_y);
+
+        if (inner_xy['rev']) $h_loc['lon'] = 180;
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;
@@ -565,6 +571,45 @@ class GeoHex
     // Step numbers along latitude : latitude方向のステップ数取得
     public static function _getYSteps($_min, $_max){
         return abs($_min['y'] - $_max['y']) + 1;
+    }
+
+    public static function _adjustXY($_x, $_y, $_level) {
+        $x   = $_x;
+        $y   = $_y;
+        $rev = 0;
+        $max_hsteps = pow( 3, $_level );
+        $hsteps = abs( $x - $y );
+
+        if( $hsteps == $max_hsteps && $x > $y ) {
+            $tmp = $x;
+            $x   = $y;
+            $y   = $tmp;
+            $rev = 1;
+        } else if ( $hsteps > $max_hsteps ) {
+            $dif   = $hsteps % ( $max_hsteps * 2 ) - $max_hsteps;
+            $dif_x = floor( $dif / 2 );
+            $dif_y = $dif - $dif_x;
+            $edge_x;
+            $edge_y;
+            if( $x > $y ){
+                $edge_x = $x - $dif_x;
+                $edge_y = $y + $dif_y;
+                $h_xy   = $edge_x;
+                $edge_x = $edge_y;
+                $edge_y = $h_xy;
+                $x      = $edge_x + $dif_x;
+                $y      = $edge_y - $dif_y;
+            } else if ( $y > $x ) {
+                $edge_x = $x + $dif_x;
+                $edge_y = $y - $dif_y;
+                $h_xy   = $edge_x;
+                $edge_x = $edge_y;
+                $edge_y = $h_xy;
+                $x      = $edge_x - $dif_x;
+                $y      = $edge_y + $dif_y;
+            }
+        }
+        return array( 'x' => $x, 'y' => $y , 'rev' => $rev );
     }
 
     public static function getHexCoordsByZone($zone)
