@@ -87,6 +87,47 @@ $testMode = array(
             );
         }
     ), 
+    array(
+        'casename' => 'Rect2XYs',
+        'mode'     => 'Rect -> XYs',
+        'input'    => 'South, West, North, East, Level, Buffer',
+        'output'   => 'List of XYs (expectaion)',
+        'logic'    => function($test_case) {
+            $south  = $test_case[0];
+            $west   = $test_case[1];
+            $north  = $test_case[2];
+            $east   = $test_case[3];
+            $level  = $test_case[4];
+            $buffer = $test_case[5];
+            $expect = $test_case[6];
+            $result = Geohex::getXYListByRect($south, $west, $north, $east, $level , $buffer);
+
+            $errMsg = '';
+
+            foreach ($expect as $e_idx => $e_dat) {
+                $e_exist = false;
+                foreach ($result as $r_idx => $r_dat) {
+                    if ($e_dat['x'] == $r_dat['x'] && $e_dat['y'] == $r_dat['y']) {
+                        $e_exist = true;
+                        array_splice($result,$r_idx,1);
+                        break;
+                    }
+                }
+                if (!$e_exist) {
+                    $errMsg .= "\n" . 'X:' . $e_dat['x'] . ' and Y:' . $e_dat['y'] . ' is included in expected but not in result.';
+                }
+            }
+
+            foreach ($result as $r_idx => $r_dat) {
+                $errMsg .= "\n" . 'X:' . $r_dat['x'] . ' and Y:' . $r_dat['y'] . ' is included in result but not in expected.';
+            }
+
+            return array(
+                'err'     => $errMsg === '' ? 0 : 1,
+                'message' => 'SW: ' . $south . ',' . $west . " NE: " . $north . ',' . $east . " Level: " . $level . " Buffer " . $buffer . $errMsg
+            );
+        }
+    ),
 );
 
 foreach ($testMode as $testMeta) {

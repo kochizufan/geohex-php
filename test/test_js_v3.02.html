@@ -12,6 +12,7 @@
 <title>V3 TEST CASE</title> 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script> 
 <script src="../hex_v3.02_core.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
+<script src="../getXYListByRect.js" type="text/javascript" content="text/html; charset=utf-8"></script>
 <script type="text/javascript">
     var mode=0;
     var option=location.search;
@@ -87,6 +88,47 @@
                 return {
                     'err'     : zone.code == code ? 0 : 1,
                     'message' : level + ", " + X + ", " + Y + " ____ " + zone.code + " (" + code + ")"
+                };
+            }
+        },
+        {
+            'casename' : 'Rect2XYs',
+            'mode'     : 'Rect -> XYs',
+            'input'    : 'South, West, North, East, Level, Buffer',
+            'output'   : 'List of XYs (expectaion)',
+            'logic'    : function(test_case) {
+                var south  = parseFloat(test_case[0]);
+                var west   = parseFloat(test_case[1]);
+                var north  = parseFloat(test_case[2]);
+                var east   = parseFloat(test_case[3]);
+                var level  = parseInt(test_case[4]);
+                var buffer = test_case[5];
+                var expect = test_case[6];
+                var result = getXYListByRect(south, west, north, east, level , buffer);
+
+                var errMsg = '';
+
+                $.each(expect,function(e_idx,e_dat) {
+                    var e_exist = false;
+                    $.each(result,function(r_idx,r_dat) {
+                        if (e_dat.x == r_dat.x && e_dat.y == r_dat.y) {
+                            e_exist = true;
+                            result.splice(r_idx,1);
+                            return false;
+                        }
+                    });
+                    if (!e_exist) {
+                        errMsg += '<br>X:' + e_dat.x + ' and Y:' + e_dat.y + ' is included in expected but not in result.';
+                    }
+                });
+
+                $.each(result,function(r_idx,r_dat) {
+                    errMsg += '<br>X:' + r_dat.x + ' and Y:' + r_dat.y + ' is included in result but not in expected.';
+                });
+
+                return {
+                    'err'     : errMsg === '' ? 0 : 1,
+                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer " + buffer + errMsg
                 };
             }
         }
