@@ -46,7 +46,7 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
         steps_y *=2;
     }
     
-    if(_min_lon==-180&&_max_lon==180) steps_x = Math.pow(3, level+2)*2;
+    if(_min_lon==-180&&_max_lon==180) steps_x = Math.pow(3, _level+2)*2;
     
     for(var j=0;j<steps_y-edge.t;j++){
         for(var i=0;i<steps_x;i++){
