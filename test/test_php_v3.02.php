@@ -107,14 +107,14 @@ $testMode = array(
             foreach ($expect as $e_idx => $e_dat) {
                 $e_exist = false;
                 foreach ($result as $r_idx => $r_dat) {
-                    if ($e_dat['x'] == $r_dat['x'] && $e_dat['y'] == $r_dat['y']) {
+                    if ($e_dat->x == $r_dat['x'] && $e_dat->y == $r_dat['y']) {
                         $e_exist = true;
                         array_splice($result,$r_idx,1);
                         break;
                     }
                 }
                 if (!$e_exist) {
-                    $errMsg .= "\n" . 'X:' . $e_dat['x'] . ' and Y:' . $e_dat['y'] . ' is included in expected but not in result.';
+                    $errMsg .= "\n" . 'X:' . $e_dat->x . ' and Y:' . $e_dat->y . ' is included in expected but not in result.';
                 }
             }
 

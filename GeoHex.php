@@ -513,6 +513,8 @@ class GeoHex
     //Get Hex list from Rect, (array:{x:n,y:m}） : RECT（矩形）内のHEXリスト取得（配列{x:n,y:m}）
     public static function getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer) {
         $list = array();
+        $steps_x = 0;
+        $steps_y = 0;
         $zone_tl = self::getZoneByLocation($_max_lat, $_min_lon, $_level);
         $zone_bl = self::getZoneByLocation($_min_lat, $_min_lon, $_level);
         $zone_br = self::getZoneByLocation($_min_lat, $_max_lon, $_level);
@@ -521,13 +523,13 @@ class GeoHex
         $start_y = $zone_bl['y'];
     
         $h_deg   = tan(pi() * (60 / 180));
-        $h_size  = strlen($zone_br['code']);
+        $h_size  = self::_calcHexSize(strlen($zone_br['code']));
     
-        $bl_xy = self::_loc2xy($zone_bl['lon'], $zone_bl['lat']);
+        $bl_xy = self::_loc2xy($zone_bl['longitude'], $zone_bl['latitude']);
         $bl_cl = self::_xy2loc($bl_xy['x'] - 1 * $h_size, $bl_xy['y']);
         $bl_cl = $bl_cl['lon'];
     
-        $br_xy = self::_loc2xy($zone_br['lon'], $zone_br['lat']);
+        $br_xy = self::_loc2xy($zone_br['longitude'], $zone_br['latitude']);
         $br_cr = self::_xy2loc($br_xy['x'] + 1 * $h_size, $br_xy['y']);
         $br_cr = $br_cr['lon'];
     
@@ -540,8 +542,8 @@ class GeoHex
         );
         if ($bl_cl > $_min_lon) $edge['l']++;
         if ($br_cr < $_max_lon) $edge['r']++;
-        if ($zone_bl['lat'] > $_min_lat) $edge['b']++;
-        if ($zone_tl['lat'] < $_max_lat) $edge['t']++;
+        if ($zone_bl['latitude'] > $_min_lat) $edge['b']++;
+        if ($zone_tl['latitude'] < $_max_lat) $edge['t']++;
     
         if ($edge['l']){
             $start_x -= $edge['b'];
@@ -550,12 +552,7 @@ class GeoHex
     
         $steps_x = self::_getXSteps($zone_bl, $zone_br) + $edge['l'] + $edge['r'];
         $steps_y = self::_getYSteps($zone_bl, $zone_tl) + $edge['b'] * $edge['t'];
-    
-        if ($steps_x < 0) {
-            $start_x = ($edge['b']) ? $start_x - floor($steps_x / 2) : $start_x - ceil( $steps_x / 2);
-            $start_y = ($edge['b']) ? $start_y + ceil( $steps_x / 2) : $start_y + floor($steps_x / 2);
-        }
-    
+
         // Calcurating for buffer : バッファ指定時: 画面の上下左右に半画面分ずつ余分取得
         if($_buffer){
             $start_x =($edge['b']) ? $start_x - floor( $steps_x / 2) : $start_x - ceil( $steps_x / 2);
@@ -563,7 +560,9 @@ class GeoHex
             $steps_y *= 2;
         }
     
-        for ($j=0;$j<$steps_y-$edge['t'];$j++) {
+        if ( $_min_lon == -180 && $_max_lon == 180 ) $steps_x = pow( 3, $level+2)*2;
+
+        for ( $j=0; $j<$steps_y-$edge['t']; $j++ ) {
             for($i=0;$i<$steps_x;$i++){
                 $x = $start_x + $j + ceil( $i / 2);
                 $y = $start_y + $j + ceil( $i / 2) - $i;
