@@ -14,8 +14,8 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
     var bl_y = zone_bl.y;
     var br_x = zone_br.x;
     var br_y = zone_br.y;
-    var tl_x = zone_bl.x;
-    var tl_y = zone_bl.y;
+    var tl_x = zone_tl.x;
+    var tl_y = zone_tl.y;
     var tr_x = zone_tr.x;
     var tr_y = zone_tr.y;
     var eject = {}
@@ -58,7 +58,6 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
 
     if(_min_lon==-180&&_max_lon==180) steps_x = Math.pow(3, _level+2)*2;
 
-var loops = 0;
     for(var j=0;j<steps_y;j++){
         for(var i=0;i<steps_x;i++){
             var x = (edge.l)?start_x + j + Math.floor(i/2):start_x + j + Math.ceil(i/2);
