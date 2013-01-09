@@ -1,3 +1,4 @@
+/// COPYRIGHT 2013 GEOHEX Inc. ///
 /// GEOHEX by @sa2da (http://geogames.net) is licensed under Creative Commons BY-SA 2.1 Japan License. ///
 
 ///////////[2010.12.14 v3公開]/////////
@@ -7,13 +8,14 @@
 ///////////[2013.1.6 範囲外のX,Y値を範囲内に補正する関数 adjustXY() を追加]/////////
 ///////////[2013.1.6 X,Y値からHEXを取得する関数 getZoneByXY() を追加]/////////
 ///////////[2013.1.6 NamespaceをGeoHexからGEOHEXに変更]/////////
+///////////[2013.1.9 adjustXYの補正ロジックを修正]/////////
 
 (function (win) {
 
 // namspace GEOHEX;
 if (!win.GEOHEX)	win.GEOHEX = function(){};
-// version: 3.02
-GEOHEX.version = "3.02";
+// version: 3.021
+GEOHEX.version = "3.021";
 
 // *** Share with all instances ***
 var h_key = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -26,8 +28,8 @@ var _zoneCache = {};
 
 // *** Share with all instances ***
 // private static
-function calcHexSize(level) {
-	return h_base/Math.pow(3, level+1);
+function calcHexSize(_level) {
+	return h_base/Math.pow(3, _level+3);
 }
 
 // private class
@@ -42,7 +44,7 @@ Zone.prototype.getLevel = function () {
 	return this.code.length-2;
 };
 Zone.prototype.getHexSize = function () {
-	return calcHexSize(this.getLevel() + 2);
+	return calcHexSize(this.getLevel());
 };
 Zone.prototype.getHexCoords = function () {
 	var h_lat = this.lat;
@@ -70,9 +72,8 @@ Zone.prototype.getHexCoords = function () {
 };
 
 // public static
-function getZoneByLocation(lat, lon, level) {
-	level +=2;
-	var h_size = calcHexSize(level);
+function getZoneByLocation(lat, lon, _level) {
+	var h_size = calcHexSize(_level);
 
 	var z_xy = loc2xy(lon, lat);
 	var lon_grid = z_xy.x;
@@ -107,7 +108,7 @@ function getZoneByLocation(lat, lon, level) {
 	var z_loc_x = z_loc.lon;
 	var z_loc_y = z_loc.lat;
 	
-	var inner_xy = adjustXY(h_x,h_y,level);
+	var inner_xy = adjustXY(h_x,h_y,_level);
 	h_x = inner_xy.x;
 	h_y = inner_xy.y;
 	if(inner_xy.rev) z_loc_x = 180;
@@ -121,8 +122,8 @@ function getZoneByLocation(lat, lon, level) {
 	var mod_y = h_y;
 
 
-	for(i = 0;i <= level ; i++){
-	  var h_pow = Math.pow(3,level-i);
+	for(i = 0;i <= _level+2 ; i++){
+	  var h_pow = Math.pow(3,_level+2-i);
 	  if(mod_x >= Math.ceil(h_pow/2)){
 	    code3_x[i] =2;
 	    mod_x -= h_pow;
@@ -163,7 +164,7 @@ function getZoneByLocation(lat, lon, level) {
 function getZoneByCode(code) {
 	if (!!_zoneCache[code])	return _zoneCache[code];
 	var level = code.length -2;
-	level +=2;
+//	level +=2;
 	var h_size =  calcHexSize(level);
 	var unit_x = 6 * h_size;
 	var unit_y = 6 * h_size * h_k;
@@ -178,7 +179,7 @@ function getZoneByCode(code) {
 	  }
 	}
 	var d9xlen = h_dec9.length;
-	for(i=0;i<level +1 - d9xlen;i++){
+	for(i=0;i<level +3 - d9xlen;i++){
 	  h_dec9 ="0"+h_dec9;
 	  d9xlen++;
 	}
@@ -201,8 +202,8 @@ function getZoneByCode(code) {
 	  h_decy[i]=h_dec3.charAt(i*2+1);
 	}
 
-	for(i=0;i<=level;i++){
-	    var h_pow = Math.pow(3,level-i);
+	for(i=0;i<=level+2;i++){
+	    var h_pow = Math.pow(3,level+2-i);
 	    if(h_decx[i] == 0){
 	        h_x -= h_pow;
 	    }else if(h_decx[i] == 2){
@@ -229,12 +230,12 @@ function getZoneByCode(code) {
 	
 	if(h_loc.lon>180){
 		 h_loc.lon -= 360;
-		 h_x -= Math.pow(3,level);    // v3.01
-		 h_y += Math.pow(3,level);    // v3.01
+		 h_x -= Math.pow(3,level+2);    // v3.01
+		 h_y += Math.pow(3,level+2);    // v3.01
 	}else if(h_loc.lon<-180){
 		 h_loc.lon += 360;
-		 h_x += Math.pow(3,level);    // v3.01
-		 h_y -= Math.pow(3,level);    // v3.01
+		 h_x += Math.pow(3,level+2);    // v3.01
+		 h_y -= Math.pow(3,level+2);    // v3.01
 	}
 	
 	
@@ -242,8 +243,8 @@ function getZoneByCode(code) {
 }
 
 function getZoneByXY(_x, _y, _level) {
-	var level = _level + 2;
-	var h_size = calcHexSize(level);
+//	_level += 2;
+	var h_size = calcHexSize(_level);
 
 	var unit_x = 6 * h_size;
 	var unit_y = 6 * h_size * h_k;
@@ -251,9 +252,11 @@ function getZoneByXY(_x, _y, _level) {
 	var h_x = _x;
 	var h_y = _y;
 	
-	var inner_xy = adjustXY(h_x,h_y,level);
+	
+	var inner_xy = adjustXY(h_x,h_y,_level);
 	h_x = inner_xy.x;
 	h_y = inner_xy.y;
+
 
 	var h_lat = (h_k * h_x * unit_x + h_y * unit_y) / 2;
 	var h_lon = (h_lat - h_y * unit_y) / h_k;
@@ -273,8 +276,8 @@ function getZoneByXY(_x, _y, _level) {
 	var mod_y = h_y;
 
 
-	for(i = 0;i <= level ; i++){
-	  var h_pow = Math.pow(3,level-i);
+	for(i = 0;i <= _level+2 ; i++){
+	  var h_pow = Math.pow(3,_level+2-i);
 	  if(mod_x >= Math.ceil(h_pow/2)){
 	    code3_x[i] =2;
 	    mod_x -= h_pow;
@@ -316,15 +319,16 @@ function adjustXY(_x, _y, _level){
 	var x =_x;
 	var y =_y;
 	var rev = 0;
-	var max_hsteps = Math.pow(3,_level);
+	var max_hsteps = Math.pow(3,_level+2);
 	var hsteps = Math.abs(x - y);
 	if(hsteps==max_hsteps&&x>y){
 		var tmp = x;
 		x = y;
 		y = tmp;
 		rev =1;
+		var loops = 0;
 	}else if(hsteps>max_hsteps){
-		var dif = hsteps%(max_hsteps*2) - max_hsteps;
+		var dif = hsteps - max_hsteps;
 		var dif_x = Math.floor(dif/2);
 		var dif_y = dif - dif_x;
 		var edge_x;
@@ -337,7 +341,7 @@ function adjustXY(_x, _y, _level){
 			edge_y = h_xy;
 			x = edge_x + dif_x;
 			y = edge_y - dif_y;
-		}else if( y>x){
+		}else if(y>x){
 			edge_x = x + dif_x;
 			edge_y = y - dif_y;
 			var h_xy = edge_x;
@@ -371,5 +375,6 @@ GEOHEX.getZoneByCode = getZoneByCode;
 GEOHEX.getZoneByXY = getZoneByXY;
 GEOHEX.loc2xy = loc2xy;
 GEOHEX.xy2loc = xy2loc;
+GEOHEX.adjustXY = adjustXY;
 
 })(this);
