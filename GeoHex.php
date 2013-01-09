@@ -14,7 +14,7 @@
  */
 class GeoHex
 {
-    const VERSION = '3.02';
+    const VERSION = '3.021';
 
     const H_KEY  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE = 20037508.34;
@@ -94,13 +94,13 @@ class GeoHex
      * public
      */
 
-    public function setLocation($latitude, $longitude, $level = null)
+    public function setLocation($latitude, $longitude, $_level = null)
     {
         $this->latitude  = $latitude;
         $this->longitude = $longitude;
 
-        if (isset($level)) {
-            $this->level = $level;
+        if (isset($_level)) {
+            $this->level = $_level;
         }
 
         if (!isset($this->latitude) ||
@@ -118,13 +118,13 @@ class GeoHex
 
         return $this->setCoords();
     }
-    public function setXY($x, $y, $level = null)
+    public function setXY($x, $y, $_level = null)
     {
         $this->x = $x;
         $this->y = $y;
 
-        if (isset($level)) {
-            $this->level = $level;
+        if (isset($_level)) {
+            $this->level = $_level;
         }
 
         if (!isset($this->x) ||
@@ -157,10 +157,10 @@ class GeoHex
 
         return $this->setCoords();
     }
-    public function setLevel($level)
+    public function setLevel($_level)
     {
         return $this->setLocation(
-            $this->latitude, $this->longitude, $level);
+            $this->latitude, $this->longitude, $_level);
     }
     public function setLatitude($latitude)
     {
@@ -202,9 +202,8 @@ class GeoHex
      * public static
      */
 
-    public static function getZoneByLocation($lat, $lon, $level) {
-        $level_   = $level + 2;
-        $h_size   = self::_calcHexSize($level_);
+    public static function getZoneByLocation($lat, $lon, $_level) {
+        $h_size   = self::_calcHexSize($_level);
         $z_xy     = self::_loc2xy($lon, $lat);
         $lon_grid = $z_xy['x'];
         $lat_grid = $z_xy['y'];
@@ -240,7 +239,7 @@ class GeoHex
         $z_loc_x = $z_loc['lon'];
         $z_loc_y = $z_loc['lat'];
 
-        $inner_xy = self::_adjustXY($h_x,$h_y,$level_);
+        $inner_xy = self::_adjustXY($h_x,$h_y,$_level);
         $h_x = $inner_xy['x'];
         $h_y = $inner_xy['y'];
         if ($inner_xy['rev']) $z_loc_x = 180;
@@ -253,8 +252,8 @@ class GeoHex
         $mod_x   = $h_x;
         $mod_y   = $h_y;
 
-        for ($i = 0; $i <= $level_; $i++) {
-            $h_pow = pow(3, $level_ - $i);
+        for ($i = 0; $i <= $_level + 2; $i++) {
+            $h_pow = pow(3, $_level + 2 - $i);
 
             if ($mod_x >= ceil($h_pow / 2)) {
                 $code3_x[$i] = 2;
@@ -303,7 +302,7 @@ class GeoHex
             'x' => $h_x,
             'y' => $h_y,
             'code' => $h_code,
-            'level' => $level,
+            'level' => $_level,
             'latitude' => $z_loc_y,
             'longitude' => $z_loc_x
         );
@@ -317,8 +316,8 @@ class GeoHex
             return $ret;
         }
 
-        $level  = strlen($code);
-        $h_size = self::_calcHexSize($level);
+        $_level = strlen($code) - 2;
+        $h_size = self::_calcHexSize($_level);
         $unit_x = 6 * $h_size;
         $unit_y = 6 * $h_size * self::H_K;
         $h_x    = 0;
@@ -340,7 +339,7 @@ class GeoHex
 
         $d9xlen = strlen($h_dec9);
 
-        for ($i = 0; $i < $level + 1 - $d9xlen; $i++) {
+        for ($i = 0; $i < $_level + 3 - $d9xlen; $i++) {
             $h_dec9 = '0' . $h_dec9;
             $d9xlen++;
         }
@@ -369,8 +368,8 @@ class GeoHex
             $h_decy[$i] = substr($h_dec3, $i * 2 + 1, 1);
         }
 
-        for ($i = 0; $i <= $level; $i++) {
-            $h_pow = pow(3, $level - $i);
+        for ($i = 0; $i <= $_level + 2; $i++) {
+            $h_pow = pow(3, $_level + 2 - $i);
 
             if ((int) $h_decx[$i] === 0) {
                 $h_x -= $h_pow;
@@ -390,7 +389,7 @@ class GeoHex
             }
         }
 
-        $inner_xy = self::_adjustXY( $h_x, $h_y, $level );
+        $inner_xy = self::_adjustXY( $h_x, $h_y, $_level );
         $h_x = $inner_xy['x'];
         $h_y = $inner_xy['y'];
 
@@ -402,14 +401,14 @@ class GeoHex
 
         if ($h_loc['lon'] > 180) {
             $h_loc['lon'] -= 360;
-            $h_x -= pow(3,$level);    // v3.01
-            $h_y += pow(3,$level);    // v3.01
+            $h_x -= pow(3,$_level + 2);    // v3.01
+            $h_y += pow(3,$_level + 2);    // v3.01
         }
         
         else if ($h_loc['lon'] < -180) {
             $h_loc['lon'] += 360;
-            $h_x += pow(3,$level);    // v3.01
-            $h_y -= pow(3,$level);    // v3.01
+            $h_x += pow(3,$_level + 2);    // v3.01
+            $h_y -= pow(3,$_level + 2);    // v3.01
         }
 
         $zone = array(
@@ -424,9 +423,8 @@ class GeoHex
         return self::_setCachedZone($zone);
     }
 
-    public static function getZoneByXY($_x, $_y, $level) {
-        $level_   = $level + 2;
-        $h_size   = self::_calcHexSize($level_);
+    public static function getZoneByXY($_x, $_y, $_level) {
+        $h_size   = self::_calcHexSize($_level);
 
         $unit_x = 6 * $h_size;
         $unit_y = 6 * $h_size * self::H_K;
@@ -434,7 +432,7 @@ class GeoHex
         $h_x = $_x;
         $h_y = $_y;
 
-        $inner_xy = self::_adjustXY( $h_x, $h_y, $level_ );
+        $inner_xy = self::_adjustXY( $h_x, $h_y, $_level );
         $h_x = $inner_xy['x'];
         $h_y = $inner_xy['y'];
 
@@ -457,8 +455,8 @@ class GeoHex
         $mod_x   = $h_x;
         $mod_y   = $h_y;
 
-        for ( $i = 0; $i <= $level_ ; $i++ ) {
-            $h_pow = pow( 3, $level_ - $i );
+        for ( $i = 0; $i <= $_level + 2 ; $i++ ) {
+            $h_pow = pow( 3, $_level + 2 - $i );
             if ( $mod_x >= ceil($h_pow/2) ) {
                 $code3_x[$i] = 2;
                 $mod_x -= $h_pow;
@@ -501,7 +499,7 @@ class GeoHex
             'x' => $h_x,
             'y' => $h_y,
             'code' => $h_code,
-            'level' => $level,
+            'level' => $_level,
             'latitude' => $z_loc_y,
             'longitude' => $z_loc_x
         );
@@ -518,19 +516,30 @@ class GeoHex
         $zone_tl = self::getZoneByLocation($_max_lat, $_min_lon, $_level);
         $zone_bl = self::getZoneByLocation($_min_lat, $_min_lon, $_level);
         $zone_br = self::getZoneByLocation($_min_lat, $_max_lon, $_level);
+        $zone_tr = self::getZoneByLocation($_max_lat, $_max_lon, $_level);
         
-        $start_x = $zone_bl['x'];
-        $start_y = $zone_bl['y'];
-    
+        $bl_x  = $zone_bl['x'];
+        $bl_y  = $zone_bl['y'];
+        $br_x  = $zone_br['x'];
+        $br_y  = $zone_br['y'];
+        $tl_x  = $zone_tl['x'];
+        $tl_y  = $zone_tl['y'];
+        $tr_x  = $zone_tr['x'];
+        $tr_y  = $zone_tr['y'];
+        $eject = array();
+
+        $start_x = $bl_x;
+        $start_y = $bl_y;
+
         $h_deg   = tan(pi() * (60 / 180));
-        $h_size  = self::_calcHexSize(strlen($zone_br['code']));
+        $h_size  = self::_calcHexSize(strlen($zone_br['code']) - 2);
     
         $bl_xy = self::_loc2xy($zone_bl['longitude'], $zone_bl['latitude']);
-        $bl_cl = self::_xy2loc($bl_xy['x'] - 1 * $h_size, $bl_xy['y']);
+        $bl_cl = self::_xy2loc($bl_xy['x'] - $h_size, $bl_xy['y']);
         $bl_cl = $bl_cl['lon'];
     
         $br_xy = self::_loc2xy($zone_br['longitude'], $zone_br['latitude']);
-        $br_cr = self::_xy2loc($br_xy['x'] + 1 * $h_size, $br_xy['y']);
+        $br_cr = self::_xy2loc($br_xy['x'] + $h_size, $br_xy['y']);
         $br_cr = $br_cr['lon'];
     
         // Checking Edge : 矩形端にHEXの抜けを無くすためのエッジ処理
@@ -545,42 +554,50 @@ class GeoHex
         if ($zone_bl['latitude'] > $_min_lat) $edge['b']++;
         if ($zone_tl['latitude'] < $_max_lat) $edge['t']++;
     
-        if ($edge['l']){
-            $start_x -= $edge['b'];
-            $start_y -= $edge['b'] - 1; 
+        if ($edge['l']) $start_y++;
+        if ($edge['b']){
+            $start_x --;
+            $start_y --; 
         }
     
         $steps_x = self::_getXSteps($zone_bl, $zone_br) + $edge['l'] + $edge['r'];
-        $steps_y = self::_getYSteps($zone_bl, $zone_tl) + $edge['b'] * $edge['t'];
+        $steps_y = self::_getYSteps($zone_bl, $zone_tl) + $edge['b'];
 
         // Calcurating for buffer : バッファ指定時: 画面の上下左右に半画面分ずつ余分取得
-        if($_buffer){
-            $start_x =($edge['b']) ? $start_x - floor( $steps_x / 2) : $start_x - ceil( $steps_x / 2);
+        if( $_buffer && ( $_min_lon != -180 || $_max_lon != 180 )){
+            $start_x =($edge['b']) ? ($start_x - floor( $steps_x / 2)) : ($start_x - ceil( $steps_x / 2));
             $steps_x *= 2;
             $steps_y *= 2;
         }
     
-        if ( $_min_lon == -180 && $_max_lon == 180 ) $steps_x = pow( 3, $level+2)*2;
+        if ( $_min_lon == -180 && $_max_lon == 180 ) $steps_x = pow( 3, $_level + 2 ) * 2;
 
-        for ( $j=0; $j<$steps_y-$edge['t']; $j++ ) {
-            for($i=0;$i<$steps_x;$i++){
-                $x = $start_x + $j + ceil( $i / 2);
-                $y = $start_y + $j + ceil( $i / 2) - $i;
-                $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
-                                   : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
-                array_push($list, $push);
+        for ( $j = 0; $j < $steps_y; $j++ ) {
+            for( $i = 0; $i < $steps_x; $i++ ){
+
+                $x = $edge['l'] ? ($start_x + $j + floor( $i / 2 )     ) : ($start_x + $j + ceil( $i / 2 ));
+                $y = $edge['l'] ? ($start_y + $j + floor( $i / 2 ) - $i) : ($start_y + $j + ceil( $i / 2 ) - $i);
+
+                $inner_xy = self::_adjustXY( $x, $y, $_level );
+                $x = $inner_xy['x'];
+                $y = $inner_xy['y'];
+
+                if (( $j == $steps_y - 1 && $i % 2 != $edge['l'] ) || ( $j == 0 && $edge['b'] && $i % 2 == $edge['l'] )) ;
+                else array_push($list, array( 'x' => $x, 'y' => $y ));
             }
         }
-        if ($edge['t']) {
+        if ( $edge['t'] ) {
             $j = $steps_y - 1;
-            for($i=0;$i<$steps_x;$i++) {
-                $x = $start_x + $j + ceil( $i / 2);
-                $y = $start_y + $j + ceil( $i / 2) - $i;
-                if ($steps_y - $edge['t'] == 0  || $edge['b'] == $i % 2 ) {
-                    $push = $edge['b'] ? array('x'=>$start_x + $j + floor($i/2),'y'=>$start_y + $j + floor($i/2) - $i)
-                                       : array('x'=>$start_x + $j + ceil( $i/2),'y'=>$start_y + $j + ceil( $i/2) - $i);
-                    array_push($list, $push);
-                }
+            for( $i = 0; $i < $steps_x; $i++ ) {
+                $x = ($edge['l']) ? ($start_x + $j + floor( $i / 2 )     ) : ($start_x + $j + ceil( $i / 2 ));
+                $y = ($edge['l']) ? ($start_y + $j + floor( $i / 2 ) - $i) : ($start_y + $j + ceil( $i / 2 ) - $i);
+
+                // リスト出力前にajustXY補正を追加
+                $inner_xy = self::_adjustXY( $x, $y, $_level );
+                $x = $inner_xy['x'];
+                $y = $inner_xy['y'];
+
+                array_push($list, array( 'x' => $x, 'y' => $y ));
             }
         }
         return $list;
@@ -588,10 +605,33 @@ class GeoHex
 
     // Step numbers along longitude : longitude方向のステップ数取得
     public static function _getXSteps($_min, $_max){
-        $code = $_min['code'];
-        $max_steps =  pow(3, strlen($code))*2;
-        $steps = abs($_min['x'] - $_max['x']) + abs($_min['y'] - $_max['y']);
-        $steps = ($steps > ($max_steps-$steps))? $steps - $max_steps: $steps;
+        $minsteps   = abs( $_min['x'] - $_min['y'] );
+        $maxsteps   = abs( $_max['x'] - $_max['y'] );
+        $code       = $_min['code'];
+        $base_steps = pow( 3, strlen($code) ) * 2;
+        
+        $steps = 0;
+        
+        if ( $_min['longitude'] != -180 && abs( $_min['longitude'] - $_max['longitude'] ) < 0.0000000001 ) {
+            $steps = 0;
+        } else if ( $_min['longitude'] < $_max['longitude'] ){
+            if ( $_min['longitude'] <= 0 && $_max['longitude'] <= 0 ) {
+                $steps = $minsteps - $maxsteps;
+            } else if ( $_min['longitude'] <= 0 && $_max['longitude'] >= 0 ) {
+                $steps = $minsteps + $maxsteps;
+            } else if ( $_min['longitude'] >= 0 && $_max['longitude'] >= 0 ) {
+                $steps = $maxsteps - $minsteps;
+            }
+        } else if ( $_min['longitude'] > $_max['longitude'] ){
+            if ( $_min['longitude'] <= 0 && $_max['longitude'] <= 0 ) {
+                $steps = $base_steps - $maxsteps + $minsteps;
+            } else if ( $_min['longitude'] >= 0 && $_max['longitude'] <= 0 ) {
+                $steps = $base_steps - ( $minsteps + $maxsteps );
+            } else if ( $_min['longitude'] >= 0 && $_max['longitude'] >= 0 ) {
+                $steps = $base_steps + $maxsteps - $minsteps;
+            }
+        }
+
         return $steps + 1;
     }
 
@@ -604,16 +644,17 @@ class GeoHex
         $x   = $_x;
         $y   = $_y;
         $rev = 0;
-        $max_hsteps = pow( 3, $_level );
+        $max_hsteps = pow( 3, $_level + 2);
         $hsteps = abs( $x - $y );
 
         if( $hsteps == $max_hsteps && $x > $y ) {
-            $tmp = $x;
-            $x   = $y;
-            $y   = $tmp;
-            $rev = 1;
+            $tmp   = $x;
+            $x     = $y;
+            $y     = $tmp;
+            $rev   = 1;
+            $loops = 0;
         } else if ( $hsteps > $max_hsteps ) {
-            $dif   = $hsteps % ( $max_hsteps * 2 ) - $max_hsteps;
+            $dif   = $hsteps - $max_hsteps;
             $dif_x = floor( $dif / 2 );
             $dif_y = $dif - $dif_x;
             $edge_x;
@@ -690,8 +731,8 @@ class GeoHex
      * private static
      */
 
-    private static function _calcHexSize($level) {
-        return self::H_BASE / pow(3, $level + 1);
+    private static function _calcHexSize($_level) {
+        return self::H_BASE / pow(3, $_level + 3);
     }
     private static function _loc2xy($lon, $lat)
     {
