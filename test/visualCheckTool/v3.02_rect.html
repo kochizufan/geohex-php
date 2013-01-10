@@ -1,0 +1,384 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml"> 
+<head> 
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" /> 
+<meta name="viewport" content="width=device-width; initial-scale=0.677; minimum-scale=0.677; maximum-scale=0.677; user-scalable=0;" /> 
+<meta http-equiv="content-script-type" content="text/javascript" /> 
+<meta http-equiv="content-style-type" content="text/css" /> 
+<meta http-equiv="cache-control" content="max-age=0" /> 
+<meta http-equiv="cache-control" content="no-cache" /> 
+<title>GEOHEX Version3.021</title> 
+<script src="./simple.js" type="text/javascript" content="text/html; charset=utf-8"></script>
+<script src="../../hex_v3.02_core.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
+<script src="../../getXYListByRect.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?libraries=geometry&sensor=false"></script> 
+<script src="./hex_gmap3.1.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
+<script type="text/javascript"> 
+    var watchID ="";
+    var key=[];
+    var level = 0;
+    var scl = 2;
+    var map;
+    var startend = [];
+    var infowin;
+    var preloc;
+    var polylines =[];
+    var currentzone;
+    var buffer = false;
+    
+    /*
+    var test_s= 45;
+    var test_w = -160;
+    var test_n = 45;
+    var test_e = 160;
+    */
+    
+    var startpos = new google.maps.LatLng(35.68092, 139.76740);
+
+    function initialize() {
+    // private static
+    GEOHEX.registOnDrawHex((function () {
+        function decodeHTML(str) {
+            return str.replace(/&nbsp;/ig," ").replace(/&quot;/ig,"\"").replace(/&gt;/ig,">").replace(/&lt;/ig,"<").replace(/&amp;/ig,"&");
+        }
+        return function (map, zone, polygon, prop) {
+            var popinfo = !!prop.popinfo;
+            if (popinfo) {
+                if (infowin)    infowin.close();
+                var url = "http://twitter.com/?status=http://geohex.net/v3.1.html?code=" + zone.code;
+                var myHtml = "<div>[ZONE] <a href='./v3.1.html?code=" + zone.code + "'>" + zone.code + "</a>";
+                myHtml += "<br />[LEVEL] " + zone.getLevel();
+                myHtml += "<br />[X,Y] " + zone.x + "/" + zone.y;
+                myHtml += "<div id='sendURL' style='height:24px;width:24px;background:url(http://geohex.net/tw_on.png) no-repeat center center;border:1px solid #BCBCBC;float:right;cursor:pointer; -webkit-border-radius: 3px; -moz-border-radius: 3px' onclick='window.open(\""+decodeHTML(url)+"\")'></div></div>";
+                var point = new google.maps.LatLng(zone.lat, zone.lon);
+                infowin = new google.maps.InfoWindow({
+                    content: myHtml,
+                    position: point
+                });
+                infowin.open(map);
+ 
+            }
+            if (!polygon.assignedClickEvent) {  // クリックイベントの多重登録を抑止
+                polygon.assignedClickEvent = google.maps.event.addListener(polygon, "click", function (event) {
+                    var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
+                    if(currentzone) currentzone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#000000",popinfo:1, lineweight:1, fillopt:0.1});
+                    zone.drawHex(map, {linecolor:"#ff0000",fillcolor:"#ff0000",popinfo:1, lineweight:8, fillopt:0.1});
+            //      var point = new google.maps.LatLng(zone.lat, zone.lon);
+                    currentzone = zone;
+                    map.panTo(new google.maps.LatLng(zone.lat, zone.lon));
+
+                });
+            }
+        };
+    })());
+ 
+    var mapFrame = document.getElementById('map_canvas');
+    if(window.innerHeight) mapFrame.style.height = window.innerHeight - 24 + "px"; else mapFrame.style.height = document.body.clientHeight - 24 + "px";
+ 
+    var option=location.search;
+    option=option.substring(1);
+    var option_arr=option.split("&");
+    var i=temp="";
+    for (i=0; i < option_arr.length; i++) {
+        temp=option_arr[i].split("=");
+        keyName=temp[0];
+        keyValue=temp[1];
+        key[keyName]=keyValue;
+    }
+    var h_code;
+    if(key["level"]) level = parseInt(key["level"]);
+    if(key["scl"]) scl = parseInt(key["scl"]);
+    if(key["code"]) h_code = key["code"];
+    if(h_code){
+      var zone = GEOHEX.getZoneByCode(h_code);
+      var startpos =new google.maps.LatLng(zone.lat , zone.lon );
+      scl = Math.round((h_code.length)*3/2);
+      level = h_code.length-2;
+    }else{
+      var startpos = new google.maps.LatLng(39.74554,-104.9893);
+    }
+    var level_r = document.getElementById('level_r');
+    
+    level_r.innerHTML =(level<10)? "0"+level:level;
+    var mapOptions = {
+    zoom: scl,
+    center: startpos,
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+         var gMapType = new google.maps.StyledMapType(stylez,{name: "GREEN"});
+
+        // Create a map object, and include the MapTypeId to add
+        // to the map type control.
+        var mapOptions = {
+            zoom: scl,
+            center: new google.maps.LatLng(35.678,139.789),
+            backgroundColor: '#000000',
+            disableDefaultUI : true,
+            mapTypeControl: false,
+            scrollwheel: true,  
+            mapTypeControlOptions: {
+                mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'GREEN']
+            }
+        };
+        map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
+
+        //Associate the styled map with the MapTypeId and set it to display.
+        map.mapTypes.set('GREEN', gMapType);
+        map.setMapTypeId('GREEN');
+  var mapinit = google.maps.event.addListener(map,'tilesloaded',function(){
+          if(h_code) setCode(h_code); else refreshHex();
+  
+    google.maps.event.removeListener(mapinit); // 今後この処理を無効化する
+});
+ 
+ 
+    /* mode=0:click, 1:mosemove, 2:geoLocationAPI(GPS)*/
+ 
+        google.maps.event.addListener(map, "dragend", function(event){
+                refreshHex();
+        });
+        
+        google.maps.event.addListener(map, "click", function(event){
+            if (event != null) {
+            if(currentzone) currentzone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#000000",popinfo:1, lineweight:1, fillopt:0.1});
+            var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
+            zone.drawHex(map, {linecolor:"#ff0000",fillcolor:"#ff0000",popinfo:1, lineweight:8, fillopt:0.1});
+            currentzone = zone;
+            }
+        });
+        
+        google.maps.event.addListener(map, "zoom_changed", function(event){
+            mzoom = map.getZoom();
+            level =(Math.floor(mzoom*2/3)>1)? Math.floor(mzoom*2/3) -2:0;
+            var level_r = document.getElementById('level_r');
+    
+            level_r.innerHTML =(level<10)? "0"+level:level;
+            refreshHex();
+        });
+    if(key["mode"] == 1){  
+        google.maps.event.addListener(map, "mousemove", function(event){
+          if (event != null) {
+             var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
+             zone.drawHex(map ,{linecolor:"#FF0000",fillcolor:"#000000",popinfo:0});
+          }
+        });
+    }else if(key["mode"] == 2){
+        watchLocation();
+    }
+}
+ 
+
+/*画面の矩形範囲内のHEX一括描画（buffer:true 画面外に反画面分ずつ余分に描画、HEX数がdrawMax以下の場合のみ描画*/
+ 
+function refreshHex(){
+    if (infowin)    infowin.close();
+    
+    
+    var bounds = map.getBounds();
+    var sw = bounds.getSouthWest();
+    var ne = bounds.getNorthEast();
+
+    document.getElementById('bottom_left').innerHTML = sw.lat() + ' / ' +sw.lng();
+    document.getElementById('top_right').innerHTML =  ne.lat() + ' / ' + ne.lng();
+
+    
+
+/*  
+    var sw = new google.maps.LatLng(test_s,test_w);
+    var ne = new google.maps.LatLng(test_n,test_e);
+    */
+    
+    var rectlist = getXYListByRect(sw.lat(), sw.lng(), ne.lat(), ne.lng(), level , false);
+/*
+    var text = '[' +  sw.lat() +', '+ sw.lng() + ', ' + ne.lat() +', '+ne.lng() + ', '+level + ', ' + buffer +', [ ';
+        for(i in rectlist){
+        text += '{"x": ' + rectlist[i].x + ', "y": ' +rectlist[i].y + '},';
+    }
+    text += ' ] ]';
+    alert(text);
+*/
+    drawList(rectlist, 2000);
+}
+
+
+function popRectList(){
+    if (infowin)    infowin.close();
+    
+    var bounds = map.getBounds();
+    var sw = bounds.getSouthWest();
+    var ne = bounds.getNorthEast();
+    
+    /*
+    var sw = new google.maps.LatLng(test_s,test_w);
+    var ne = new google.maps.LatLng(test_n,test_e);
+    */
+    
+    var rectlist = getXYListByRect(sw.lat(), sw.lng(), ne.lat(), ne.lng(), level , false);
+    console.log(JSON.stringify( [ sw.lat(), sw.lng(), ne.lat(),ne.lng(), level, buffer, rectlist] ));
+}
+
+function drawRect(){
+    var se;
+    var ne;
+    
+     var rectangle = new google.maps.Rectangle({
+          strokeColor: '#FF0000',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#FF0000',
+          fillOpacity: 0.35,
+          map: map,
+          bounds: new google.maps.LatLngBounds(sw,ne)
+        });
+}
+
+
+function setBuffer(){
+    var b_btn = document.getElementById("buffer_btn");
+    if(b_btn.innerHTML == "ON"){
+        b_btn.innerHTML = "OFF";
+        buffer = false;
+        refreshHex();
+    }else{
+        b_btn.innerHTML = "ON";
+        buffer = true;
+        refreshHex();
+    }   
+}
+
+//listを一括描画。
+function drawList(_list, _drawMax){
+    removeList();
+    var text ="";
+    if(_list.length < _drawMax){
+        for(var i in _list){
+            var zone = GEOHEX.getZoneByXY(_list[i].x,_list[i].y, level);
+            text += "\n["+ i + "]" + "org_x: " +_list[i].x + ", org_y: " + _list[i].y +  ", zone_x: " +zone.x + ", zone_y: " + zone.y + ", steps_org: " + Math.abs(_list[i].x -_list[i].y) + ", zone_Steps: " + Math.abs(zone.x- zone.y);
+            zone.drawHex(map ,{linecolor:"#FF0000",fillcolor:"000000",popinfo:0});
+        }
+    }
+    //alert(text);
+}
+
+//listを一括削除。
+function removeList(){
+  if (polylines) {
+    for (i in polylines) {
+      polylines[i].setMap(null);
+    }
+    polylines.length = 0;
+  }
+}
+
+function autoLocation(){
+  if(watchID) stopLocation();
+  watchID = navigator.geolocation.watchPosition(updateLocation, handleError);
+  loadingOn();
+ 
+}
+function updateLocation(position){
+/*現在地を取得した場合、一時的に保管・精度比較。
+　その後タイマー処理で最も精度の良い位置に更新する*/
+ 
+  var lon = position.coords.longitude;
+  var lat = position.coords.latitude;
+  var acc = position.coords.accuracy;
+ 
+  var zone = GEOHEX.getZoneByLocation(lat, lon, level);
+    var zone_center =new google.maps.LatLng(zone.lat , zone.lon );
+//    map.setZoom(scl);
+    zone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#FF0000",popinfo:1});
+    map.setCenter(zone_center);
+    stopLocation();
+}
+function stopLocation(){
+  if(watchID) navigator.geolocation.clearWatch(watchID);
+  watchID = "";
+}
+function handleError(){
+    //alert('位置情報を取得できませんでした\n別の場所で再起動してください');
+    stopLocation();
+    stopTimer();
+}
+ 
+function loadingOn(){
+    var load = document.getElementById('loading');
+    load.innerHTML = "Loading...";
+}
+function loadingOff(){
+    var load = document.getElementById('loading');
+    load.innerHTML = "現在地";
+}
+function setCode(_code){
+    var zone = GEOHEX.getZoneByCode(_code);
+    var zone_center =new google.maps.LatLng(zone.lat , zone.lon );
+    currentzone = zone;
+//    map.setZoom(scl);
+                    
+    map.setCenter(zone_center);
+    zone.drawHex(map, {linecolor:"#ff0000",fillcolor:"#ff0000",popinfo:1, lineweight:8, fillopt:0.1});
+}
+function changeLevel(_num){
+  level +=((level+_num >=0)&&(level+_num<=15))?_num:0;
+    var level_r = document.getElementById('level_r');
+    level_r.innerHTML =(level<10)? "0"+level:level;
+
+}
+ 
+function update(position){
+    var lon = position.coords.longitude;
+    var lat = position.coords.latitude;
+    var acc = position.coords.accuracy;
+    var zone = GEOHEX.getZoneByLocation(lat, lon, level);
+//      map.panTo(new GLatLng(lat , lon ));
+    zone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#FF0000",popinfo:1});
+}
+ 
+function handleError(){
+    //alert('位置情報を取得できませんでした');
+    stopLocation();
+}
+
+ 
+</script> 
+<style type="text/css"> 
+    html,body{
+        height:   100%;
+        overflow: hidden;
+        margin:   0px;
+        font-family:'Bank Gothic', 'Arial Black', Gadget, sans-serif;
+    }
+    #copy a:link ,#header a:link { color: #ffffff; }
+    #copy a:visited,#header a:visited { color: #ffffff; }
+    #copy a:hover ,#header a:hover { color: #ffffff; }
+    #copy a:active,#header a:active { color: #ffffff; }
+ 
+@-webkit-keyframes mycolor {
+ 
+    0%  {
+                right:100%;
+        }
+    100%    {
+                right:0;
+        }
+ 
+    }
+</style> 
+ 
+</head> 
+<body onload="initialize()"> 
+ <div style="width:100%;background-color:#000000;"> 
+    <img src = "./geohex_logo_l.png" style="position:absolute;z-index:40;top:11px;left:10px;" />
+    <div style="position:absolute;z-index:20;bottom:50px;right:0px;margin-right:25px;color:#ffffff;font-size:70px;" id="code">LEVEL: <span id="level_r">00</span></div>
+    
+    <div style="position:absolute;z-index:50;top:50px;left:50%;color:#ffffff;font-size:16px;" id="code"><span style="font-size:20px;">SW: </span><span id="bottom_left">000000 / 000000</span><br /><span style="font-size:20px;">NE: </span><span id="top_right">000000 / 000000</span><br /><span style="font-size:20px;">BUFFER: <a onclick="setBuffer()" style="cursor:pointer;text-decoration: underline;" id="buffer_btn">ON</a></span>　　<span style="font-size:20px;"><a onclick="popRectList()" style="cursor:pointer;text-decoration: underline;"><img style="margin:0 3px -5px 0;" src="./getlist.png">GETLIST</a></span></div>
+ 
+    <div id="header" style="position:absolute;z-index:10;top:0px;left:0px;width:100%;height:30px;background:url(./geohex_headerbg_l.png) no-repeat 0 0;color:#ffffff;"><div style="padding-left:330px;padding-top:7px; text-decoration:none;"><a href="https://sites.google.com/site/geohexdocs/" target="_blank">docs</a> | <a href="https://groups.google.com/group/geohex" target="_blank">forum</a> | <a href="http://geohex.net">v2</a></div></div></div> 
+ 
+    <div id="map_canvas" style="width: 100%;position:absolute;top:0;left:0;z-index:0;"></div> 
+    <div style="width:100%;background-color:#000000;border-bottom:1px solid #999999;height:24px;position:absolute;z-index:10;bottom:0px;left:0px;filter:alpha(opacity=90);-moz-opacity:0.90;opacity:0.90;color:#ffffff;font-size:11px;"><div style="margin:6px;" id="copy">Copyright &copy;&nbsp;&nbsp;<a  style="text-decoration:none;" href="http://geogames.net/">2012 GEOHEX Inc.</a><div id="sb" style="float:right;font-size:11px;"><span xmlns:dc="http://purl.org/dc/elements/1.1/" property="dc:title">GEOHEX</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="http://twitter.com/sa2da" property="cc:attributionName" rel="cc:attributionURL">sa2da</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/2.1/jp/">Creative Commons BY-SA 2.1 Japan License</a>.<a rel="license" href="http://creativecommons.org/licenses/by-sa/2.1/jp/"><img alt="Creative Commons License" style="margin-bottom:-5px;border-width:0" src="http://i.creativecommons.org/l/by-sa/2.1/jp/80x15.png" /></a></div></div></div> 
+</body> 
+ 
+</html> 
