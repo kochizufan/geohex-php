@@ -3,6 +3,117 @@
 
 // RECT（矩形）内のHEXリスト取得（配列{x:n,y:m}）
 function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffer){
+    //東西座標最大/最小値
+    var common_ew     = Math.pow(3,_level + 2);
+    var common_max_ew = common_ew - 1;
+    var common_min_ew = -1 * common_ew;
+
+    //矩形角のゾーン
+    var zone_tl  = GEOHEX.getZoneByLocation(_max_lat, _min_lon, _level);
+    var zone_tr  = GEOHEX.getZoneByLocation(_max_lat, _max_lon, _level);
+    var zone_bl  = GEOHEX.getZoneByLocation(_min_lat, _min_lon, _level);
+    var zone_br  = GEOHEX.getZoneByLocation(_min_lat, _max_lon, _level);
+    //矩形角の頂点
+    var coord_tl = zone_tl.getHexCoords();
+    var coord_tr = zone_tr.getHexCoords();
+    var coord_bl = zone_bl.getHexCoords();
+    var coord_br = zone_br.getHexCoords();
+
+    //最小の東西座標
+    var tl_ew  = zone_tl.x - zone_tl.y;
+    //西北/西南頂点より西にある時は、スキャンする東西座標を一つ減らす
+    if ( ( tl_ew != common_min_ew && _min_lon < coord_tl[1].lon ) || 
+         ( tl_ew == common_min_ew && _min_lon > 0 && _min_lon - 360 < coord_tl[1].lon ) ) tl_ew--;
+    var bl_ew  = zone_bl.x - zone_bl.y;
+    if ( ( bl_ew != common_min_ew && _min_lon < coord_bl[1].lon ) || 
+         ( bl_ew == common_min_ew && _min_lon > 0 && _min_lon - 360 < coord_bl[1].lon ) ) bl_ew--;
+
+    var min_ew = tl_ew < bl_ew ? tl_ew : bl_ew;
+    if ((tl_ew == common_min_ew && bl_ew == common_max_ew) || (tl_ew == common_max_ew && bl_ew == common_min_ew)) {
+        min_ew = common_min_ew;
+    }
+
+    //最大の東西座標
+    var tr_ew  = zone_tr.x - zone_tr.y;
+    //東北/東南頂点より東にある時は、スキャンする東西座標を一つ増やす
+    //また、日付変更線またぎへクスの東経部分に居る時は、東西座標を地球一周分増やす
+    if ( tr_ew == common_min_ew && _max_lon > 0) tr_ew += 2 * common_ew;
+    else if ( ( tr_ew != common_min_ew || _max_lon < 0 ) && _max_lon > coord_tr[2].lon) tr_ew++;
+    var br_ew  = zone_br.x - zone_br.y;
+    if ( br_ew == common_min_ew && _max_lon > 0) br_ew += 2 * common_ew;
+    else if ( ( br_ew != common_min_ew || _max_lon < 0 ) && _max_lon > coord_br[2].lon) br_ew++;
+
+    var max_ew = tr_ew > br_ew ? tr_ew : br_ew;
+    if ((tr_ew == common_min_ew && br_ew == common_max_ew) || (tr_ew == common_max_ew && br_ew == common_min_ew)) {
+        max_ew = common_max_ew;
+    }
+
+    //最大東西座標より最小東西座標の方が大きい時は、地球一周させる
+    while (max_ew < min_ew) {
+        max_ew += 2 * common_ew;
+    }
+
+    //最大の南北座標、中心より北に居る時は一つ増やす
+    var tl_ns  = zone_tl.x + zone_tl.y;
+    if (_max_lat > zone_tl.lat) tl_ns++;
+    var tr_ns  = zone_tr.x + zone_tr.y;
+    if (_max_lat > zone_tr.lat) tr_ns++;
+    var max_ns = tl_ns > tr_ns ? tl_ns : tr_ns;
+
+    //最小の南北座標、中心より南に居る時は一つ減らす
+    var bl_ns  = zone_bl.x + zone_bl.y;
+    if (_min_lat < zone_bl.lat) bl_ns--;
+    var br_ns  = zone_br.x + zone_br.y;
+    if (_min_lat < zone_br.lat) br_ns--;    
+    var min_ns = bl_ns < br_ns ? bl_ns : br_ns;
+
+    //東西南北座標ループ
+    var list   = {};
+    for (var ew = min_ew; ew <= max_ew; ew++) {
+        for (var ns = min_ns; ns <= max_ns; ns++) {
+            //東西座標と南北座標の偶奇が一致するところにしかへクスはないので処理を跳ばす
+            if ( Math.abs(ew % 2) != Math.abs(ns % 2) ) continue;
+            //とんでもない値になっている東西座標を修正
+            var adjew = ew; 
+            while (1) {
+                if ( adjew > common_max_ew ) {
+                    adjew -= 2 * common_ew;
+                } else if ( adjew < common_min_ew ) {
+                    adjew += 2 * common_ew;
+                } else {
+                    break;
+                }
+            }
+
+            //東西南北座標をへクス座標に変換
+            var x = (ns + adjew) / 2;
+            var y = (ns - adjew) / 2;
+            
+            var zone = GEOHEX.getZoneByXY(x, y,　_level);
+
+            //隅のへクスは一致しない限り採用しない
+            if (ew == min_ew) {
+                if (ns == min_ns && (zone.x != zone_bl.x || zone.y != zone_bl.y)) continue;
+                else if (ns == max_ns && (zone.x != zone_tl.x || zone.y != zone_tl.y)) continue;
+            } else if (ew == max_ew) {
+                if (ns == min_ns && (zone.x != zone_br.x || zone.y != zone_br.y)) continue;
+                else if (ns == max_ns && (zone.x != zone_tr.x || zone.y != zone_tr.y)) continue;
+            }
+
+            list[zone.code] = zone;
+        }
+    }
+
+    var ret_list = [];
+    for (var code in list) {
+        var zone = list[code];
+        ret_list.push({"x":zone.x,"y":zone.y});
+    }
+
+    return ret_list;
+}
+
+function getXYListByRect1(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffer){
     var list = [];
     var steps_x =0;
     var steps_y =0;
