@@ -27,6 +27,7 @@
     var polylines =[];
     var currentzone;
     var buffer = false;
+    var rectangle;
     
     /*
     var test_s= 45;
@@ -92,81 +93,106 @@
     if(key["scl"]) scl = parseInt(key["scl"]);
     if(key["code"]) h_code = key["code"];
     if(h_code){
-      var zone = GEOHEX.getZoneByCode(h_code);
-      var startpos =new google.maps.LatLng(zone.lat , zone.lon );
-      scl = Math.round((h_code.length)*3/2);
-      level = h_code.length-2;
+        var zone = GEOHEX.getZoneByCode(h_code);
+        var startpos =new google.maps.LatLng(zone.lat , zone.lon );
+        scl = Math.round((h_code.length)*3/2);
+        level = h_code.length-2;
     }else{
-      var startpos = new google.maps.LatLng(39.74554,-104.9893);
+        var startpos = new google.maps.LatLng(39.74554,-104.9893);
     }
     var level_r = document.getElementById('level_r');
     
     level_r.innerHTML =(level<10)? "0"+level:level;
     var mapOptions = {
-    zoom: scl,
-    center: startpos,
-    mapTypeId: google.maps.MapTypeId.ROADMAP
+        zoom: scl,
+        center: startpos,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
     };
-         var gMapType = new google.maps.StyledMapType(stylez,{name: "GREEN"});
+    var gMapType = new google.maps.StyledMapType(stylez,{name: "GREEN"});
 
-        // Create a map object, and include the MapTypeId to add
-        // to the map type control.
-        var mapOptions = {
-            zoom: scl,
-            center: new google.maps.LatLng(35.678,139.789),
-            backgroundColor: '#000000',
-            disableDefaultUI : true,
-            mapTypeControl: false,
-            scrollwheel: true,  
-            mapTypeControlOptions: {
-                mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'GREEN']
-            }
-        };
-        map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
+    // Create a map object, and include the MapTypeId to add
+    // to the map type control.
+    var mapOptions = {
+        zoom: scl,
+        center: new google.maps.LatLng(35.678,139.789),
+        backgroundColor: '#000000',
+        disableDefaultUI : true,
+        mapTypeControl: false,
+        scrollwheel: true,  
+        mapTypeControlOptions: {
+            mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'GREEN']
+        }
+    };
+    map = new google.maps.Map(document.getElementById('map_canvas'),mapOptions);
 
-        //Associate the styled map with the MapTypeId and set it to display.
-        map.mapTypes.set('GREEN', gMapType);
-        map.setMapTypeId('GREEN');
-  var mapinit = google.maps.event.addListener(map,'tilesloaded',function(){
-          if(h_code) setCode(h_code); else refreshHex();
-  
-    google.maps.event.removeListener(mapinit); // 今後この処理を無効化する
-});
- 
+    //Associate the styled map with the MapTypeId and set it to display.
+    map.mapTypes.set('GREEN', gMapType);
+    map.setMapTypeId('GREEN');
+    var mapinit = google.maps.event.addListener(map,'tilesloaded',function(){
+        if(h_code) setCode(h_code); else refreshHex();
+        google.maps.event.removeListener(mapinit); // 今後この処理を無効化する
+    });
  
     /* mode=0:click, 1:mosemove, 2:geoLocationAPI(GPS)*/
  
-        google.maps.event.addListener(map, "dragend", function(event){
-                refreshHex();
-        });
+    google.maps.event.addListener(map, "dragend", function(event){
+        refreshHex();
+    });
         
-        google.maps.event.addListener(map, "click", function(event){
-            if (event != null) {
-            if(currentzone) currentzone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#000000",popinfo:1, lineweight:1, fillopt:0.1});
-            var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
-            zone.drawHex(map, {linecolor:"#ff0000",fillcolor:"#ff0000",popinfo:1, lineweight:8, fillopt:0.1});
-            currentzone = zone;
-            }
-        });
+    google.maps.event.addListener(map, "click", function(event){
+        if (event != null) {
+        if(currentzone) currentzone.drawHex(map, {linecolor:"#FF0000",fillcolor:"#000000",popinfo:1, lineweight:1, fillopt:0.1});
+        var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
+        zone.drawHex(map, {linecolor:"#ff0000",fillcolor:"#ff0000",popinfo:1, lineweight:8, fillopt:0.1});
+        currentzone = zone;
+        }
+    });
         
-        google.maps.event.addListener(map, "zoom_changed", function(event){
-            mzoom = map.getZoom();
-            level =(Math.floor(mzoom*2/3)>1)? Math.floor(mzoom*2/3) -2:0;
-            var level_r = document.getElementById('level_r');
+    google.maps.event.addListener(map, "zoom_changed", function(event){
+        mzoom = map.getZoom();
+        level =(Math.floor(mzoom*2/3)>1)? Math.floor(mzoom*2/3) -2:0;
+        var level_r = document.getElementById('level_r');
     
-            level_r.innerHTML =(level<10)? "0"+level:level;
-            refreshHex();
-        });
+        level_r.innerHTML =(level<10)? "0"+level:level;
+        refreshHex();
+    });
     if(key["mode"] == 1){  
         google.maps.event.addListener(map, "mousemove", function(event){
-          if (event != null) {
-             var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
-             zone.drawHex(map ,{linecolor:"#FF0000",fillcolor:"#000000",popinfo:0});
-          }
+            if (event != null) {
+                var zone = GEOHEX.getZoneByLocation(event.latLng.lat(), event.latLng.lng(), level);
+                zone.drawHex(map ,{linecolor:"#FF0000",fillcolor:"#000000",popinfo:0});
+            }
         });
     }else if(key["mode"] == 2){
         watchLocation();
     }
+
+    // Add rectangle
+    var bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(20.000, 120.000),
+        new google.maps.LatLng(50.000, 150.000)
+    );
+    rectangle = new google.maps.Rectangle({
+        bounds: bounds,
+        editable: true,
+        strokeColor: '#FFFF00', 
+        strokeOpacity: 0.8, 
+        strokeWeight: 2, 
+        fillColor: '#FFFF00',
+        fillOpacity: 0.35
+    });
+
+    rectangle.setMap(map);
+    var rectChange = function(){
+        var bounds = rectangle.getBounds();
+        var sw = bounds.getSouthWest();
+        var ne = bounds.getNorthEast();
+
+        document.getElementById('bottom_left').innerHTML = sw.lat() + ' / ' +sw.lng();
+        document.getElementById('top_right').innerHTML =  ne.lat() + ' / ' + ne.lng();
+    };
+    rectChange();
+    google.maps.event.addListener(rectangle, "bounds_changed", rectChange);
 }
  
 
@@ -180,8 +206,8 @@ function refreshHex(){
     var sw = bounds.getSouthWest();
     var ne = bounds.getNorthEast();
 
-    document.getElementById('bottom_left').innerHTML = sw.lat() + ' / ' +sw.lng();
-    document.getElementById('top_right').innerHTML =  ne.lat() + ' / ' + ne.lng();
+    //document.getElementById('bottom_left').innerHTML = sw.lat() + ' / ' +sw.lng();
+    //document.getElementById('top_right').innerHTML =  ne.lat() + ' / ' + ne.lng();
 
     
 
@@ -206,7 +232,7 @@ function refreshHex(){
 function popRectList(){
     if (infowin)    infowin.close();
     
-    var bounds = map.getBounds();
+    var bounds = rectangle.getBounds();
     var sw = bounds.getSouthWest();
     var ne = bounds.getNorthEast();
     
@@ -217,6 +243,8 @@ function popRectList(){
     
     var rectlist = getXYListByRect(sw.lat(), sw.lng(), ne.lat(), ne.lng(), level , false);
     console.log(JSON.stringify( [ sw.lat(), sw.lng(), ne.lat(),ne.lng(), level, buffer, rectlist] ));
+
+    drawList(rectlist,2000);
 }
 
 function drawRect(){
