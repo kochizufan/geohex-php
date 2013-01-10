@@ -280,9 +280,16 @@ function setBuffer(){
 function drawList(_list, _drawMax){
     removeList();
     var text ="";
+    var dupTest = {};
     if(_list.length < _drawMax){
         for(var i in _list){
             var zone = GEOHEX.getZoneByXY(_list[i].x,_list[i].y, level);
+            if (dupTest[zone.code]) {
+                console.log("Duplicate! " + JSON.stringify(zone));
+                continue;
+            } else {
+                dupTest[zone.code] = 1;
+            }
             text += "\n["+ i + "]" + "org_x: " +_list[i].x + ", org_y: " + _list[i].y +  ", zone_x: " +zone.x + ", zone_y: " + zone.y + ", steps_org: " + Math.abs(_list[i].x -_list[i].y) + ", zone_Steps: " + Math.abs(zone.x- zone.y);
             zone.drawHex(map ,{linecolor:"#FF0000",fillcolor:"000000",popinfo:0});
         }
