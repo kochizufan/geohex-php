@@ -109,6 +109,7 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
         var zone = list[code];
         ret_list.push({"x":zone.x,"y":zone.y});
     }
+    console.log(JSON.stringify([_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffer, ret_list]));
 
     return ret_list;
 }
