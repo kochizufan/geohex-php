@@ -18,12 +18,13 @@
     var option=location.search;
     option=(option.substring(1)).split("=");
     if(option[1]) mode = parseInt(option[1]); // 0:code -> HEX, 1:coordinate -> HEX, 2:code -> XY, 3:XY -> HEX, 4: coordinate ->XY
+    GEOHEX.cache_on = false;
 
     var testMode = [
         {
             'casename' : 'code2HEX',
             'mode'     : 'code -> HEX',
-            'input'    : 'code',
+//            'cache' : GEOHEX.cache_on,
             'output'   : 'zone.lat, zone.lon (expectaion)',
             'logic'    : function(test_case) {
                 var lat  = parseFloat(test_case[1]);
@@ -40,6 +41,7 @@
         {
             'casename' : 'coord2HEX',
             'mode'     : 'coordinate -> HEX',
+//            'cache' : GEOHEX.cache_on,
             'input'    : 'level, lat, lon',
             'output'   : 'zone.code (expectaion)',
             'logic'    : function(test_case) {
@@ -58,6 +60,7 @@
         {
             'casename' : 'coord2XY',
             'mode'     : 'coordinate -> XY',
+//            'cache' : GEOHEX.cache_on,
             'input'    : 'level, lat, lon',
             'output'   : 'X, Y (expectaion)',
             'logic'    : function(test_case) {
@@ -77,6 +80,7 @@
         {
             'casename' : 'code2XY',
             'mode'     : 'code -> XY',
+//            'cache' : GEOHEX.cache_on,
             'input'    : 'code',
             'output'   : 'zone.x, zone.y (expectaion)',
             'logic'    : function(test_case) {
@@ -95,6 +99,7 @@
         {
             'casename' : 'XY2HEX',
             'mode'     : 'XY -> HEX',
+//            'cache' : GEOHEX.cache_on,
             'input'    : 'level, X, Y',
             'output'   : 'zone.code (expectaion)',
             'logic'    : function(test_case) {
@@ -113,6 +118,7 @@
         {
             'casename' : 'Rect2XYs',
             'mode'     : 'Rect -> XYs',
+//            'cache' : GEOHEX.cache_on,
             'input'    : 'South, West, North, East, Level, Buffer',
             'output'   : 'List of XYs (expectaion)',
             'logic'    : function(test_case) {
@@ -157,6 +163,7 @@
         $('#log').empty();
         var testMeta  = testMode[index];
         $('#mode').html(testMeta['mode']);
+//        $('#cache').html(testMeta['cache']);
         var testJson  = 'hex_v3.02_test_' + testMeta['casename'] + '.json';
         $('#file').html("<a href='./" + testJson + "'>" + testJson + "</a>");
         $('#input').html(testMeta['input']);
@@ -186,6 +193,7 @@
     
     function initialize() {
         $('#version').text(GEOHEX.version);
+        $('#cache').text(GEOHEX.cache_on);
         $.each(testMode,function(i,mode) {
             $('#link').append(' <a href="?mode=' + i + '">' + i + ': ' + mode['mode'] + '</a>');
         });
@@ -224,6 +232,7 @@
 <div>TEST_CASE: <span id="file"></span></div>
 <div>VERSION: <span id="version"></span></div>
 <div>MODE: <span id="mode"></span></div>
+<div>CACHE: <span id="cache"></span></div>
 <div>TOTAL_COUNT: <span id="count"></span></div>
     ---------------------------------------------------------------------------------------<br />INPUT: <span id="input"></span> ____ OUTPUT: <span id="output"></span><br />---------------------------------------------------------------------------------------<div id ="log"></div>
 </body> 
