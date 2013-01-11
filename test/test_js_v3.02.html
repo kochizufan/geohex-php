@@ -132,6 +132,8 @@
                 var result = getXYListByRect(south, west, north, east, level , buffer);
 
                 var errMsg = '';
+                var r_len  = result.length;
+                var e_len  = expect.length;
 
                 $.each(expect,function(e_idx,e_dat) {
                     var e_exist = false;
@@ -153,7 +155,34 @@
 
                 return {
                     'err'     : errMsg === '' ? 0 : 1,
-                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer " + buffer + errMsg
+                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer: " + buffer + " Zones: " + r_len + " (" + e_len + ') <a href="./visualCheckTool/v3.02_rect.html?rect=' + south + ',' + west + ',' + north + ',' + east + ',' + level +'">Visual checker</a>' + errMsg
+                };
+            }
+        },
+        {
+            'casename' : 'CACHE',
+            'mode'     : 'CACHE Test',
+//            'cache' : GEOHEX.cache_on,
+            'input'    : 'cache_on',
+            'output'   : 'cache_check (expectaion)',
+            'logic'    : function(test_case) {
+                var level  = parseInt(test_case[0]);
+                var X      = parseInt(test_case[1]);
+                var Y      = parseInt(test_case[2]);
+                var mode   = test_case[3];
+
+                GEOHEX.cache_on = mode;
+
+                var b_zone = GEOHEX.getZoneByXY(X, Y, level);
+                b_zone.cache_check = true;
+                var a_zone = GEOHEX.getZoneByXY(X, Y, level);
+                var check  = a_zone.cache_check || false;
+
+                GEOHEX.cache_on = false;
+
+                return {
+                    'err'     : a_zone.code == b_zone.code && mode == check ? 0 : 1,
+                    'message' : level + ", " + X + ", " + Y + " ____ " + a_zone.code + ": Cache: " + check + " (" + mode + ")"
                 };
             }
         }

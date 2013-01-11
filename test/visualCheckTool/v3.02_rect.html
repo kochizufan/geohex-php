@@ -26,8 +26,14 @@
     var preloc;
     var polylines =[];
     var currentzone;
+    var startpos;
     var buffer = false;
     var rectangle;
+    var bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(20.000, 120.000),
+        new google.maps.LatLng(50.000, 150.000)
+    );
+    var autoRefresh = true;
     
     /*
     var test_s= 45;
@@ -88,17 +94,33 @@
         keyValue=temp[1];
         key[keyName]=keyValue;
     }
-    var h_code;
+    var h_code,rect;
     if(key["level"]) level = parseInt(key["level"]);
     if(key["scl"]) scl = parseInt(key["scl"]);
     if(key["code"]) h_code = key["code"];
-    if(h_code){
+    if(key["rect"]) {
+        var rect = key["rect"].split(",");
+        bounds = new google.maps.LatLngBounds(
+            new google.maps.LatLng(rect[0], rect[1]),
+            new google.maps.LatLng(rect[2], rect[3])
+        );
+        level  = parseInt(rect[4]);
+        scl = Math.round((level+2)*3/2);
+
+        var cen_lat = (parseFloat(rect[0]) + parseFloat(rect[2])) / 2;
+        var cen_lon = (parseFloat(rect[1]) + parseFloat(rect[3])) / 2;
+        if (parseFloat(rect[1]) > parseFloat(rect[3])) {
+            cen_lon += 180;
+        }
+        startpos =new google.maps.LatLng( cen_lat , cen_lon );
+        autoRefresh = false;
+    } else if(h_code){
         var zone = GEOHEX.getZoneByCode(h_code);
-        var startpos =new google.maps.LatLng(zone.lat , zone.lon );
+        startpos =new google.maps.LatLng(zone.lat , zone.lon );
         scl = Math.round((h_code.length)*3/2);
         level = h_code.length-2;
     }else{
-        var startpos = new google.maps.LatLng(39.74554,-104.9893);
+        startpos = new google.maps.LatLng(39.74554,-104.9893);
     }
     var level_r = document.getElementById('level_r');
     
@@ -114,7 +136,7 @@
     // to the map type control.
     var mapOptions = {
         zoom: scl,
-        center: new google.maps.LatLng(35.678,139.789),
+        center: startpos,
         backgroundColor: '#000000',
         disableDefaultUI : true,
         mapTypeControl: false,
@@ -168,10 +190,6 @@
     }
 
     // Add rectangle
-    var bounds = new google.maps.LatLngBounds(
-        new google.maps.LatLng(20.000, 120.000),
-        new google.maps.LatLng(50.000, 150.000)
-    );
     rectangle = new google.maps.Rectangle({
         bounds: bounds,
         editable: true,
@@ -193,14 +211,16 @@
     };
     rectChange();
     google.maps.event.addListener(rectangle, "bounds_changed", rectChange);
+
+    if (!autoRefresh) popRectList();
 }
  
 
 /*画面の矩形範囲内のHEX一括描画（buffer:true 画面外に反画面分ずつ余分に描画、HEX数がdrawMax以下の場合のみ描画*/
  
 function refreshHex(){
+    if (!autoRefresh) return;
     if (infowin)    infowin.close();
-    
     
     var bounds = map.getBounds();
     var sw = bounds.getSouthWest();

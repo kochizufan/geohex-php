@@ -24,9 +24,11 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
     //西北/西南頂点より西にある時は、スキャンする東西座標を一つ減らす
     if ( ( tl_ew != common_min_ew && _min_lon < coord_tl[1].lon ) || 
          ( tl_ew == common_min_ew && _min_lon > 0 && _min_lon - 360 < coord_tl[1].lon ) ) tl_ew--;
+    if ( tl_ew < common_min_ew ) tl_ew = common_max_ew;
     var bl_ew  = zone_bl.x - zone_bl.y;
     if ( ( bl_ew != common_min_ew && _min_lon < coord_bl[1].lon ) || 
          ( bl_ew == common_min_ew && _min_lon > 0 && _min_lon - 360 < coord_bl[1].lon ) ) bl_ew--;
+    if ( bl_ew < common_min_ew ) bl_ew = common_max_ew;
 
     var min_ew = tl_ew < bl_ew ? tl_ew : bl_ew;
     if ((tl_ew == common_min_ew && bl_ew == common_max_ew) || (tl_ew == common_max_ew && bl_ew == common_min_ew)) {
@@ -37,10 +39,10 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
     var tr_ew  = zone_tr.x - zone_tr.y;
     //東北/東南頂点より東にある時は、スキャンする東西座標を一つ増やす
     //また、日付変更線またぎへクスの東経部分に居る時は、東西座標を地球一周分増やす
-    if ( tr_ew == common_min_ew && _max_lon > 0) tr_ew += 2 * common_ew;
+    if ( tr_ew == common_min_ew && _max_lon > 0 && !( tr_ew == tl_ew && _min_lon < _max_lon && _min_lon > 0 )) tr_ew += 2 * common_ew;
     else if ( ( tr_ew != common_min_ew || _max_lon < 0 ) && _max_lon > coord_tr[2].lon) tr_ew++;
     var br_ew  = zone_br.x - zone_br.y;
-    if ( br_ew == common_min_ew && _max_lon > 0) br_ew += 2 * common_ew;
+    if ( br_ew == common_min_ew && _max_lon > 0 && !( br_ew == bl_ew && _min_lon < _max_lon && _min_lon > 0 )) br_ew += 2 * common_ew;
     else if ( ( br_ew != common_min_ew || _max_lon < 0 ) && _max_lon > coord_br[2].lon) br_ew++;
 
     var max_ew = tr_ew > br_ew ? tr_ew : br_ew;
