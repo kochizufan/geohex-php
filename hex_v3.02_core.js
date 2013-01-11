@@ -11,13 +11,15 @@
 ///////////[2013.1.9 adjustXYの補正ロジックを修正]/////////
 ///////////[2013.1.11 getZoneByLocation()→getXYByLocation()とgetZoneByXY()に分割]/////////
 ///////////[2013.1.11 getZoneByCode()→getXYByCode()とgetZoneByXY()に分割]/////////
+///////////[2013.1.11 adjustXY補正のx<y修正]/////////
 
 (function (win) {
 
 // namspace GEOHEX;
 if (!win.GEOHEX)	win.GEOHEX = function(){};
-// version: 3.022
-GEOHEX.version = "3.022";
+// version: 3.025
+GEOHEX.version = "3.025";
+GEOHEX.cache_on = true;
 
 // *** Share with all instances ***
 var h_key = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -89,7 +91,6 @@ function getZoneByCode(_code) {
 
 function getXYByLocation(lat, lon, _level) {
 	var h_size = calcHexSize(_level);
-
 	var z_xy = loc2xy(lon, lat);
 	var lon_grid = z_xy.x;
 	var lat_grid = z_xy.y;
@@ -184,20 +185,13 @@ function getXYByCode(code) {
 }
 
 function getZoneByXY(_x, _y, _level) {
-//	_level += 2;
 	var h_size = calcHexSize(_level);
+	
+	var h_x =_x;
+	var h_y=_y;
 
 	var unit_x = 6 * h_size;
 	var unit_y = 6 * h_size * h_k;
-	
-	var h_x = _x;
-	var h_y = _y;
-	
-	
-	var inner_xy = adjustXY(h_x,h_y,_level);
-	h_x = inner_xy.x;
-	h_y = inner_xy.y;
-
 
 	var h_lat = (h_k * h_x * unit_x + h_y * unit_y) / 2;
 	var h_lon = (h_lat - h_y * unit_y) / h_k;
@@ -206,11 +200,21 @@ function getZoneByXY(_x, _y, _level) {
 	var z_loc_x = z_loc.lon;
 	var z_loc_y = z_loc.lat;
 	
-	if(inner_xy.rev) z_loc_x = 180;
-
+	var max_hsteps = Math.pow(3,_level+2);
+	var hsteps = Math.abs(h_x - h_y);
+	
+	if(hsteps==max_hsteps){
+		if(h_x>h_y){
+		var tmp = h_x;
+		h_x = h_y;
+		h_y = tmp;
+		}
+		z_loc_x = -180;
+	}
+	
 	var h_code ="";
-	var code3_x =[];
-	var code3_y =[];
+	var code3_x =new Array();
+	var code3_y =new Array();
 	var code3 ="";
 	var code9="";
 	var mod_x = h_x;
@@ -252,9 +256,12 @@ function getZoneByXY(_x, _y, _level) {
 	var h_a2 = h_1%30;
 	h_code = (h_key.charAt(h_a1)+h_key.charAt(h_a2)) + h_2;
 
-
-	if (!!_zoneCache[h_code])	return _zoneCache[h_code];
-	return (_zoneCache[h_code] = new Zone(z_loc_y, z_loc_x, h_x, h_y, h_code));	
+	if(GEOHEX.cache_on){
+		if (!!_zoneCache[h_code])	return _zoneCache[h_code];
+		return (_zoneCache[h_code] = new Zone(z_loc_y, z_loc_x, _x, _y, h_code));
+	}else{
+		return new Zone(z_loc_y, z_loc_x, _x, _y, h_code);
+	}
 }
 
 function adjustXY(_x, _y, _level){
@@ -268,7 +275,6 @@ function adjustXY(_x, _y, _level){
 		x = y;
 		y = tmp;
 		rev =1;
-		var loops = 0;
 	}else if(hsteps>max_hsteps){
 		var dif = hsteps - max_hsteps;
 		var dif_x = Math.floor(dif/2);
@@ -493,6 +499,7 @@ function getZoneByCode(code) {
 
 // EXPORT
 GEOHEX.getZoneByLocation = getZoneByLocation;
+GEOHEX.getXYByLocation = getXYByLocation;
 GEOHEX.getZoneByCode = getZoneByCode;
 GEOHEX.getZoneByXY = getZoneByXY;
 GEOHEX.loc2xy = loc2xy;

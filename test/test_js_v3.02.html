@@ -17,7 +17,7 @@
     var mode=0;
     var option=location.search;
     option=(option.substring(1)).split("=");
-    if(option[1]) mode = parseInt(option[1]); // 0:code -> HEX, 1:coordinate -> HEX, 2:code -> XY, 3:XY -> HEX
+    if(option[1]) mode = parseInt(option[1]); // 0:code -> HEX, 1:coordinate -> HEX, 2:code -> XY, 3:XY -> HEX, 4: coordinate ->XY
 
     var testMode = [
         {
@@ -52,6 +52,25 @@
                 return {
                     'err'     : zone.code == code ? 0 : 1,
                     'message' : level + ", " + lat + ", " + lon + " ____ " + zone.code + " (" + code + ")"
+                };
+            }
+        },
+        {
+            'casename' : 'coord2XY',
+            'mode'     : 'coordinate -> XY',
+            'input'    : 'level, lat, lon',
+            'output'   : 'X, Y (expectaion)',
+            'logic'    : function(test_case) {
+                var level = parseInt(test_case[0]);
+                var lat   = parseFloat(test_case[1]);
+                var lon   = parseFloat(test_case[2]);
+                var X     = parseInt(test_case[3]);
+                var Y     = parseInt(test_case[4]);
+                var XY  = GEOHEX.getXYByLocation(lat, lon, level);
+
+                return {
+                    'err'     : (XY.x == X)&&(XY.y == Y) ? 0 : 1,
+                    'message' : level + ", " + lat + ", " + lon + " ____ " + XY.x + ", " + XY.y + " (" + X + ", " + Y + ")"
                 };
             }
         },
