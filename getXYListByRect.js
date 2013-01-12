@@ -91,7 +91,7 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
             var x = (ns + adjew) / 2;
             var y = (ns - adjew) / 2;
             
-            var zone = GEOHEX.getZoneByXY(x, y,　_level);
+            var zone = {"x":x, "y":y};//GEOHEX.getZoneByXY(x, y,　_level);
 
             //隅のへクスは一致しない限り採用しない
             if (ew == min_ew) {
@@ -102,7 +102,7 @@ function getXYListByRect(_min_lat, _min_lon, _max_lat, _max_lon, _level , _buffe
                 else if (ns == max_ns && (zone.x != zone_tr.x || zone.y != zone_tr.y)) continue;
             }
 
-            list[zone.code] = zone;
+            list[zone.x + "," + zone.y] = zone;
         }
     }
 
