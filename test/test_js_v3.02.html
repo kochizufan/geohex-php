@@ -13,7 +13,6 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script> 
 <script src="../hex_v3.02_core.js" type="text/javascript" content="text/html; charset=utf-8"></script> 
 <script src="../getXYListByRect.js" type="text/javascript" content="text/html; charset=utf-8"></script>
-<script src="../getXYListByRect_v3.026.js" type="text/javascript" content="text/html; charset=utf-8"></script>
 <script type="text/javascript">
     var mode=0;
     var option=location.search;
@@ -186,7 +185,8 @@
                     'message' : level + ", " + X + ", " + Y + " ____ " + a_zone.code + ": Cache: " + check + " (" + mode + ")"
                 };
             }
-        },
+        }
+/*,
         {
             'casename' : 'Rect2XYsBenchmark',
             'mode'     : 'Rect2XYsBenchmark',
@@ -256,7 +256,7 @@
                     'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer: " + buffer + " Zones: ( Logic 1 : " + r1_len + " Logic 2 : " + r2_len + ' ) <br>Faster Logic: ' + (delta1 > delta2 ? "Logic 2" : "Logic 1") + ' ( Logic 1 : ' + delta1 + ' sec, Logic 2 : ' + delta2 + ' sec ) ' + errMsg
                 };
             }
-        }
+        }*/
     ];
 
     function runTest(index) {
