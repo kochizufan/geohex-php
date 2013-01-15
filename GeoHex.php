@@ -433,7 +433,7 @@ class GeoHex
 
     //Port from JavaScript API 3.1
     //Get Hex list from Rect, (array:{x:n,y:m}） : RECT（矩形）内のHEXリスト取得（配列{x:n,y:m}）
-    public static function getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer) {
+    public static function getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer=false) {
         $base_steps = pow(3, $_level + 2) * 2;
         $list       = array();
         $steps_x    = 0;
@@ -542,6 +542,18 @@ class GeoHex
         $mrg_list = self::_mergeList(array_merge($s_list, $w_list, $n_list, $e_list), $_level);
 
         return $mrg_list;
+    }
+
+    public static function getZoneListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer=false) {
+        $xys = self::getXYListByRect($_min_lat, $_min_lon, $_max_lat, $_max_lon, $_level , $_buffer);
+        $ret = array();
+
+        foreach ($xys as $xy) {
+            $zone = self::getZoneByXY($xy->x,$xy->y,$_level);
+            array_push($ret, $zone);
+        }
+
+        return $ret;
     }
 
     // longitude方向の仮想リスト取得
