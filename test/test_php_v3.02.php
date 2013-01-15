@@ -19,8 +19,8 @@ $testMode = array(
             $g->setCode($code);
 
             return array(
-                'err'     => (abs($g->latitude - $lat) < 0.0000000001 && abs($g->longitude - $lon) < 0.0000000001) ? 0 : 1,
-                'message' => $code . " ____ " . $g->latitude . ", " . $g->longitude . " (" . $lat . ", " . $lon . ")"
+                'err'     => (abs($g->lat - $lat) < 0.0000000001 && abs($g->lon - $lon) < 0.0000000001) ? 0 : 1,
+                'message' => $code . " ____ " . $g->lat . ", " . $g->lon . " (" . $lat . ", " . $lon . ")"
             );
         }
     ),
@@ -35,14 +35,37 @@ $testMode = array(
             $lon   = $test_case[2];
             $code  = $test_case[3];
             $g = new Geohex(array(
-                'latitude' => $lat,
-                'longitude' => $lon,
+                'lat' => $lat,
+                'lon' => $lon,
                 'level' => $level,
             ));
 
             return array(
                 'err'     => $g->code === $code ? 0 : 1,
                 'message' => $level . ", " . $lat . ", " . $lon . " ____ " . $g->code . " (" . $code . ")"
+            );
+        }
+    ),
+    array(
+        'casename' => 'coord2XY',
+        'mode'     => 'coordinate -> XY',
+        'input'    => 'level, lat, lon',
+        'output'   => 'X, Y (expectaion)',
+        'logic'    => function($test_case) {
+            $level = $test_case[0];
+            $lat   = $test_case[1];
+            $lon   = $test_case[2];
+            $X     = $test_case[3];
+            $Y     = $test_case[4];
+            $g = new Geohex(array(
+                'lat' => $lat,
+                'lon' => $lon,
+                'level' => $level,
+            ));
+
+            return array(
+                'err'     => ($g->x == $X && $g->y == $Y) ? 0 : 1,
+                'message' => $level . ", " . $lat . ", " . $lon . " ____ " . $g->x . ", " . $g->y . " (" . $X . ", "  . $Y . ")"
             );
         }
     ),
