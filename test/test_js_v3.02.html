@@ -132,6 +132,8 @@
                 var result = getXYListByRect(south, west, north, east, level , buffer);
 
                 var errMsg = '';
+                var r_len  = result.length;
+                var e_len  = expect.length;
 
                 $.each(expect,function(e_idx,e_dat) {
                     var e_exist = false;
@@ -153,10 +155,108 @@
 
                 return {
                     'err'     : errMsg === '' ? 0 : 1,
-                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer " + buffer + errMsg
+                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer: " + buffer + " Zones: " + r_len + " (" + e_len + ') <a href="./visualCheckTool/v3.02_rect.html?rect=' + south + ',' + west + ',' + north + ',' + east + ',' + level +'">Visual checker</a>' + errMsg
+                };
+            }
+        },
+        {
+            'casename' : 'CACHE',
+            'mode'     : 'CACHE Test',
+//            'cache' : GEOHEX.cache_on,
+            'input'    : 'cache_on',
+            'output'   : 'cache_check (expectaion)',
+            'logic'    : function(test_case) {
+                var level  = parseInt(test_case[0]);
+                var X      = parseInt(test_case[1]);
+                var Y      = parseInt(test_case[2]);
+                var mode   = test_case[3];
+
+                GEOHEX.cache_on = mode;
+
+                var b_zone = GEOHEX.getZoneByXY(X, Y, level);
+                b_zone.cache_check = true;
+                var a_zone = GEOHEX.getZoneByXY(X, Y, level);
+                var check  = a_zone.cache_check || false;
+
+                GEOHEX.cache_on = false;
+
+                return {
+                    'err'     : a_zone.code == b_zone.code && mode == check ? 0 : 1,
+                    'message' : level + ", " + X + ", " + Y + " ____ " + a_zone.code + ": Cache: " + check + " (" + mode + ")"
                 };
             }
         }
+/*,
+        {
+            'casename' : 'Rect2XYsBenchmark',
+            'mode'     : 'Rect2XYsBenchmark',
+//            'cache' : GEOHEX.cache_on,
+            'input'    : 'South, West, North, East, Level, Buffer',
+            'output'   : 'List of XYs (expectaion)',
+            'logic'    : function(test_case) {
+                var south  = parseFloat(test_case[0]);
+                var west   = parseFloat(test_case[1]);
+                var north  = parseFloat(test_case[2]);
+                var east   = parseFloat(test_case[3]);
+                var level  = parseInt(test_case[4]);
+                var buffer = test_case[5];
+                var result1; //= test_case[6];
+                var result2; //= getXYListByRect(south, west, north, east, level , buffer);
+
+                var errMsg = '';
+
+                var d      = new Date();
+                var sec1   = parseInt(d.getTime());
+                var mil1   = parseFloat("0." + d.getMilliseconds());
+
+                for (var i=0; i<10000; i++) {
+                    result1 = getXYListByRect(south, west, north, east, level , buffer);
+                }
+
+                d = new Date();
+                var sec2   = parseInt(d.getTime());
+                var mil2   = parseFloat("0." + d.getMilliseconds());
+
+                for (var i=0; i<10000; i++) {
+                    result2 = getXYListByRect2(south, west, north, east, level , buffer);
+                }
+
+                d = new Date();
+                var sec3   = parseInt(d.getTime());
+                var mil3   = parseFloat("0." + d.getMilliseconds());
+
+                var delsec1 = sec2 - sec1;
+                var delsec2 = sec3 - sec2;
+                var delta1  = parseFloat(delsec1) + mil2 - mil1;
+                var delta2  = parseFloat(delsec2) + mil3 - mil2;
+
+                var r1_len  = result1.length;
+                var r2_len  = result2.length;
+
+                $.each(result1,function(r1_idx,r1_dat) {
+                    var r1_exist = false;
+                    $.each(result2,function(r2_idx,r2_dat) {
+                        if (r1_dat.x == r2_dat.x && r1_dat.y == r2_dat.y) {
+                            r1_exist = true;
+                            result2.splice(r2_idx,1);
+                            return false;
+                        }
+                    });
+                    if (!r1_exist) {
+                        errMsg += '<br>X:' + r1_dat.x + ' and Y:' + r1_dat.y + ' is included in Logic 1 but not in Logic 2.';
+                    }
+                });
+
+                $.each(result2,function(r2_idx,r2_dat) {
+                    errMsg += '<br>X:' + r2_dat.x + ' and Y:' + r2_dat.y + ' is included in Logic 2 but not in Logic 1.';
+                });
+
+                return {
+                    'err'     : errMsg === '' ? 0 : 1,
+                    'message' : 'SW: ' + south + ',' + west + " NE: " + north + ',' + east + " Level: " + level + " Buffer: " + buffer + " Zones: ( Logic 1 : " + r1_len + " Logic 2 : " + r2_len + ' ) <br>Faster Logic: ' + (delta1 > delta2 ? "Logic 2" : "Logic 1") + ' ( Logic 1 : ' + delta1 + ' sec, Logic 2 : ' + delta2 + ' sec ) ' + errMsg
+                };
+            }
+        }*/
     ];
 
     function runTest(index) {
