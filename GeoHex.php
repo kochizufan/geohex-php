@@ -14,7 +14,7 @@
  */
 class GeoHex
 {
-    const VERSION = '3.021';
+    const VERSION = '3.025';
 
     const H_KEY    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     const H_BASE   = 20037508.34;
