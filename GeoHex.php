@@ -549,7 +549,7 @@ class GeoHex
         $ret = array();
 
         foreach ($xys as $xy) {
-            $zone = self::getZoneByXY($xy->x,$xy->y,$_level);
+            $zone = self::getZoneByXY($xy['x'],$xy['y'],$_level);
             array_push($ret, $zone);
         }
 
