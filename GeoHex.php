@@ -404,6 +404,16 @@ class GeoHex
             } else {
                 $code3_y[$i] = 1;
             }
+
+            if ( $i==2 && ($z_loc_x == -180 || $z_loc_x >= 0) ) {
+                if ($code3_x[0] == 2 && $code3_y[0] == 1 && $code3_x[1] == $code3_y[1] && $code3_x[2] == $code3_y[2]) {
+                    $code3_x[0]=1;
+                    $code3_y[0]=2;
+                } else if ( $code3_x[0] == 1 && $code3_y[0] == 0 && $code3_x[1] == $code3_y[1] && $code3_x[2] == $code3_y[2]) {
+                    $code3_x[0]=0;
+                    $code3_y[0]=1;
+                }
+            }
         }
 
         for ($i=0;$i<count($code3_x);$i++) {
